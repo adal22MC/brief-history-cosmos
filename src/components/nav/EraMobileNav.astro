@@ -6,10 +6,29 @@ const statusLabel = `01 / ${String(CHAPTER_COUNT).padStart(2, '0')}`;
 
 <nav class="era-mobile" aria-label="Timeline quick navigation" data-era-mobile>
   <button type="button" class="era-mobile__btn" data-rail-prev aria-label="Previous section">
-    ←
+    <svg class="era-mobile__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M14 17l-5-5 5-5"></path>
+    </svg>
   </button>
-  <span class="era-mobile__status" data-rail-mobile-status>{statusLabel}</span>
+  <div class="era-mobile__detail" aria-live="polite">
+    <span class="era-mobile__label" data-rail-mobile-label="" />
+    <span class="era-mobile__status" data-rail-mobile-status>{statusLabel}</span>
+  </div>
   <button type="button" class="era-mobile__btn" data-rail-next aria-label="Next section">
-    →
+    <svg class="era-mobile__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M10 7l5 5-5 5"></path>
+    </svg>
   </button>
 </nav>

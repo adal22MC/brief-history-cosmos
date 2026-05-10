@@ -262,7 +262,8 @@ main {
   }
 }
 
-@media (pointer: coarse) {
+/* Móvil y viewport estrecha (DevTools suele tener pointer:fine). */
+@media (max-width: 900px), (pointer: coarse) {
   .era-rail {
     display: none;
   }
@@ -270,7 +271,11 @@ main {
     display: flex;
   }
   .section-index {
-    bottom: 5rem;
+    display: none;
+  }
+  /* Espacio después del último bloque para no tapar la firma; más ajustado que antes */
+  main {
+    padding-bottom: calc(clamp(4.5rem, 10vmin, 6.25rem) + env(safe-area-inset-bottom, 0px));
   }
 }
 

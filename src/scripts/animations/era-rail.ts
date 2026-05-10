@@ -16,6 +16,16 @@ function isEditableTarget(target: EventTarget | null) {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 }
 
+function getRailSectionLabel(section: HTMLElement | undefined) {
+  if (!section) return '';
+  const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
+  return (
+    section.dataset[`sectionLabel${lang === 'en' ? 'En' : 'Es'}`] ??
+    section.dataset.sectionLabel ??
+    ''
+  );
+}
+
 export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const rail = document.querySelector<HTMLElement>('[data-era-rail]');
   const mobile = document.querySelector<HTMLElement>('[data-era-mobile]');
@@ -29,6 +39,7 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const prevBtn = document.querySelector<HTMLButtonElement>('[data-rail-prev]');
   const nextBtn = document.querySelector<HTMLButtonElement>('[data-rail-next]');
   const mobileStatus = document.querySelector<HTMLElement>('[data-rail-mobile-status]');
+  const mobileLabel = document.querySelector<HTMLElement>('[data-rail-mobile-label]');
   const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   let activeIndex = 0;
 
@@ -62,6 +73,10 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
       mobileStatus.textContent = sections.length
         ? `${String(activeIndex + 1).padStart(2, '0')} / ${String(sections.length).padStart(2, '0')}`
         : 'SRC';
+    }
+    if (mobileLabel) {
+      mobileLabel.textContent =
+        sections.length && activeSection ? getRailSectionLabel(activeSection as HTMLElement) : '';
     }
     if (prevBtn) prevBtn.disabled = !sections.length || activeIndex === 0;
     if (nextBtn) nextBtn.disabled = !sections.length || activeIndex === sections.length - 1;
@@ -136,6 +151,7 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (index >= 0) setActive(index);
   });
 
+  listen(document, 'cosmos:language-change', () => setActive(activeIndex));
   listen<KeyboardEvent>(document, 'keydown', (event) => {
     if (!sections.length) return;
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
