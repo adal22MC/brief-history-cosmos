@@ -10,6 +10,14 @@ interface Props {
   titleEs?: string;
   titleEn?: string;
   description?: string;
+  /** Ruta o URL absoluta de la imagen para Open Graph / Twitter (recomendado ≥1200×630; PNG/JPG suele ir mejor que SVG en Meta/WhatsApp). */
+  image?: string;
+  ogTitle?: string;
+  /** Nombre corto del sitio para og:site_name */
+  siteName?: string;
+  /** og:type; por defecto website */
+  ogType?: string;
+  robots?: string;
 }
 
 const {
@@ -17,7 +25,28 @@ const {
   titleEs = title,
   titleEn = title,
   description = 'A bilingual cinematic journey from the Big Bang to today, with live data from NASA APOD and the ISS.',
+  image = '/og-image.svg',
+  ogTitle,
+  siteName = 'Una breve historia del cosmos',
+  ogType = 'website',
+  robots = 'index, follow',
 } = Astro.props;
+
+const baseUrl = Astro.site ?? Astro.url;
+const canonicalURL = Astro.site ? new URL(Astro.url.pathname, Astro.site) : Astro.url;
+function toAbsolute(href: string): string {
+  if (href.startsWith('http://') || href.startsWith('https://')) return href;
+  return new URL(href.startsWith('/') ? href : `/${href}`, baseUrl).href;
+}
+const ogImageUrl = toAbsolute(image);
+const shareTitle = ogTitle ?? title;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteName,
+  url: canonicalURL.href,
+  description,
+};
 ---
 
 <!doctype html>
@@ -26,7 +55,31 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
     <meta name="author" content="Adalberto Moreno Cárdenas" />
+    <meta name="theme-color" content="#06060d" />
+    <link rel="canonical" href={canonicalURL.href} />
+
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={shareTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={shareTitle} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={shareTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={shareTitle} />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
