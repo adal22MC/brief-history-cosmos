@@ -88,11 +88,21 @@ const jsonLd = {
       rel="stylesheet"
     />
     <title>{title}</title>
-    <script define:vars={{ titleEs, titleEn }} is:inline>
+    <meta name="cosmos-title-es" content={titleEs} />
+    <meta name="cosmos-title-en" content={titleEn} />
+    <script is:inline>
       (function () {
+        function readPageTitles() {
+          const es = document.querySelector('meta[name="cosmos-title-es"]')?.getAttribute('content');
+          const en = document.querySelector('meta[name="cosmos-title-en"]')?.getAttribute('content');
+          return { es: es ?? '', en: en ?? '' };
+        }
         function syncTitle() {
           const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
-          document.title = lang === 'en' ? titleEn : titleEs;
+          const { es: titleEs, en: titleEn } = readPageTitles();
+          if (titleEs || titleEn) {
+            document.title = lang === 'en' ? titleEn || titleEs : titleEs || titleEn;
+          }
         }
         syncTitle();
         document.addEventListener('cosmos:language-change', syncTitle);
