@@ -1,0 +1,101 @@
+---
+import '@/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import MainNav from '@/components/nav/MainNav.astro';
+import EraRail from '@/components/nav/EraRail.astro';
+import EraMobileNav from '@/components/nav/EraMobileNav.astro';
+
+interface Props {
+  title?: string;
+  titleEs?: string;
+  titleEn?: string;
+  description?: string;
+}
+
+const {
+  title = 'A brief history of the cosmos',
+  titleEs = title,
+  titleEn = title,
+  description = 'A bilingual cinematic journey from the Big Bang to today, with live data from NASA APOD and the ISS.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" data-lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="author" content="Adalberto Moreno Cárdenas" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+    <script define:vars={{ titleEs, titleEn }} is:inline>
+      (function () {
+        function syncTitle() {
+          const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
+          document.title = lang === 'en' ? titleEn : titleEs;
+        }
+        syncTitle();
+        document.addEventListener('cosmos:language-change', syncTitle);
+        document.addEventListener('astro:page-load', syncTitle);
+      })();
+    </script>
+    <ClientRouter />
+    <script is:inline>
+      // Aplicar idioma guardado lo más pronto posible para evitar parpadeo.
+      (function () {
+        try {
+          const saved = localStorage.getItem('lang');
+          const initial = saved ?? (navigator.language?.startsWith('en') ? 'en' : 'es');
+          document.documentElement.setAttribute('lang', initial);
+          document.documentElement.setAttribute('data-lang', initial);
+        } catch {}
+      })();
+    </script>
+    <script>
+      import { initThreeScene } from '@/scripts/three-scene';
+      import { initAnimations } from '@/scripts/animations';
+
+      function bootCosmos() {
+        const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement | null;
+        let sceneApi: ReturnType<typeof initThreeScene> | null = null;
+        if (canvas && !canvas.dataset.booted) {
+          sceneApi = initThreeScene(canvas);
+          canvas.dataset.booted = '1';
+          window.__sceneApi = sceneApi;
+        } else {
+          sceneApi = window.__sceneApi ?? null;
+        }
+        initAnimations({ sceneApi });
+      }
+
+      if (!window.__cosmosPageLoadBound) {
+        window.__cosmosPageLoadBound = true;
+        document.addEventListener('astro:page-load', bootCosmos);
+        document.addEventListener('DOMContentLoaded', bootCosmos, { once: true });
+      }
+      if (document.readyState !== 'loading') bootCosmos();
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">
+      <span data-es>Saltar al contenido</span><span data-en>Skip to content</span>
+    </a>
+    <canvas class="bg-canvas" id="bg-canvas" aria-hidden="true" transition:persist></canvas>
+    <MainNav />
+    <div class="scroll-progress" aria-hidden="true"><span /></div>
+    <div class="section-index" aria-hidden="true">
+      <span class="section-index__num">00</span>
+      <span class="section-index__label">Idle</span>
+    </div>
+    <EraRail />
+    <EraMobileNav />
+    <slot />
+  </body>
+</html>

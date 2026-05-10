@@ -1,0 +1,182 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import ChapterSection from '@/components/chapter/ChapterSection.astro';
+import LiveNowGrid from '@/components/live/LiveNowGrid.astro';
+import SiteFooter from '@/components/layout/SiteFooter.astro';
+import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
+
+const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
+---
+
+<Layout
+  title="Una breve historia del cosmos"
+  titleEs="Una breve historia del cosmos"
+  titleEn="A brief history of the cosmos"
+>
+  <main id="main">
+    <ChapterSection chapter={CHAPTERS[0]} totalChapters={CHAPTER_COUNT} variant="hero">
+      <BilingualSpan
+        slot="heading"
+        es="Una breve historia del cosmos"
+        en="A brief history of the cosmos"
+      />
+      <BilingualSpan
+        slot="lede"
+        es="El universo cabía en un punto. Luego dejó de caber."
+        en="The universe fit in a point. Then it didn't."
+      />
+      <BilingualSpan
+        slot="note"
+        es="En una fracción mínima de segundo, el espacio se estiró más rápido que cualquier señal pudiera recorrerlo."
+        en="In a tiny fraction of a second, space stretched faster than any signal could cross it."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Edad" en="Age" /></dt>
+        <dd>10⁻³² s</dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Expansión" en="Expansion" /></dt>
+        <dd>×10²⁶</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c02} totalChapters={CHAPTER_COUNT}>
+      <BilingualSpan slot="heading" es="La primera luz" en="First light" />
+      <BilingualSpan
+        slot="lede"
+        es="380 000 años después, la luz por fin pudo viajar."
+        en="380,000 years later, light could finally travel."
+      />
+      <BilingualSpan
+        slot="note"
+        es="Los electrones encontraron núcleos, el plasma se volvió transparente y quedó grabado el eco térmico del inicio."
+        en="Electrons joined nuclei, plasma turned transparent, and the early thermal echo was imprinted."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Edad" en="Age" /></dt>
+        <dd>
+          380 000 <BilingualSpan es="años" en="years" />
+        </dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Temperatura" en="Temperature" /></dt>
+        <dd>3 000 K</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c03} totalChapters={CHAPTER_COUNT}>
+      <BilingualSpan slot="heading" es="Las primeras estrellas" en="The first stars" />
+      <BilingualSpan
+        slot="lede"
+        es="Encendieron una oscuridad de cien millones de años."
+        en="They lit up a hundred-million-year darkness."
+      />
+      <BilingualSpan
+        slot="note"
+        es="Sus hornos breves fabricaron los primeros elementos pesados y cambiaron para siempre la química del cosmos."
+        en="Their short-lived furnaces forged the first heavy elements and changed cosmic chemistry forever."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Edad" en="Age" /></dt>
+        <dd>~200 Ma</dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Población" en="Population" /></dt>
+        <dd>III</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c04} totalChapters={CHAPTER_COUNT}>
+      <BilingualSpan slot="heading" es="Espirales lentas" en="Slow spirals" />
+      <BilingualSpan
+        slot="lede"
+        es="La gravedad tejió a las estrellas en espirales."
+        en="Gravity wove the stars into spirals."
+      />
+      <BilingualSpan
+        slot="note"
+        es="Discos, halos y brazos espirales empezaron a mezclar gas, polvo y generaciones enteras de estrellas."
+        en="Disks, halos, and spiral arms began mixing gas, dust, and whole generations of stars."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Edad" en="Age" /></dt>
+        <dd>1 Ga</dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Vía Láctea" en="Milky Way" /></dt>
+        <dd>~10¹¹ ★</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c05} totalChapters={CHAPTER_COUNT}>
+      <BilingualSpan slot="heading" es="Una nube colapsa" en="A cloud collapses" />
+      <BilingualSpan
+        slot="lede"
+        es="Una nube de polvo y gas se derrumbó. De ella salimos nosotros."
+        en="A cloud of dust and gas collapsed. From it, we emerged."
+      />
+      <BilingualSpan
+        slot="note"
+        es="Alrededor del Sol joven, granos microscópicos chocaron hasta levantar mundos, lunas y océanos posibles."
+        en="Around the young Sun, microscopic grains collided until they built worlds, moons, and possible oceans."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Hace" en="Ago" /></dt>
+        <dd>4.6 Ga</dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Planetas" en="Planets" /></dt>
+        <dd>8</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c06} totalChapters={CHAPTER_COUNT}>
+      <BilingualSpan slot="heading" es="Química inquieta" en="Restless chemistry" />
+      <BilingualSpan
+        slot="lede"
+        es="Una química inquieta empezó a copiarse a sí misma."
+        en="A restless chemistry started copying itself."
+      />
+      <BilingualSpan
+        slot="note"
+        es="La evolución convirtió moléculas frágiles en células, ecosistemas y memorias capaces de adaptarse."
+        en="Evolution turned fragile molecules into cells, ecosystems, and memories capable of adapting."
+      />
+      <div slot="stats">
+        <dt><BilingualSpan es="Hace" en="Ago" /></dt>
+        <dd>3.7 Ga</dd>
+      </div>
+      <div slot="stats">
+        <dt><BilingualSpan es="Especies" en="Species" /></dt>
+        <dd>~10⁷</dd>
+      </div>
+    </ChapterSection>
+
+    <ChapterSection chapter={c07} totalChapters={CHAPTER_COUNT} variant="now">
+      <BilingualSpan
+        slot="heading"
+        es="Trece mil ochocientos millones de años después"
+        en="Thirteen-point-eight billion years later"
+      />
+      <BilingualSpan
+        slot="lede"
+        es="Una estación humana cruza el cielo cada noventa minutos. Un telescopio mira más lejos que nunca."
+        en="A human station crosses the sky every ninety minutes. A telescope sees farther than ever."
+      />
+      <BilingualSpan
+        slot="note"
+        es="La historia ya no es sólo pasado: la medimos en directo con órbitas, cámaras y señales que llegan ahora mismo."
+        en="The story is no longer only past tense: we measure it live through orbits, cameras, and signals arriving now."
+      />
+      <div slot="extra">
+        <LiveNowGrid />
+        <a href="/work" class="chapter__more">
+          <BilingualSpan es="Fuentes y créditos →" en="Sources and credits →" />
+        </a>
+      </div>
+    </ChapterSection>
+
+    <SiteFooter />
+  </main>
+</Layout>

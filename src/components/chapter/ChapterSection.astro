@@ -1,0 +1,73 @@
+---
+import type { ChapterMeta } from '@/content/timeline';
+import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+
+interface Props {
+  chapter: ChapterMeta;
+  totalChapters: number;
+  variant?: 'default' | 'hero' | 'now';
+}
+
+const { chapter, totalChapters, variant = 'default' } = Astro.props;
+
+const paddedTotal = String(totalChapters).padStart(2, '0');
+const chapterNumLabel = `${chapter.railNum} / ${paddedTotal}`;
+
+const sectionClass = [
+  'section',
+  'chapter',
+  variant === 'hero' && 'hero',
+  variant === 'now' && 'chapter--now',
+]
+  .filter(Boolean)
+  .join(' ');
+
+const innerClass = [
+  'chapter__inner',
+  variant === 'now' && 'chapter__inner--wide',
+]
+  .filter(Boolean)
+  .join(' ');
+---
+
+<section
+  id={chapter.id}
+  class={sectionClass}
+  data-section-label={chapter.sectionLabelEn}
+  data-section-label-es={chapter.sectionLabelEs}
+  data-section-label-en={chapter.sectionLabelEn}
+  data-era={chapter.era}
+  data-rail-section
+>
+  <div class={innerClass}>
+    <span class="chapter__num">{chapterNumLabel}</span>
+    <span class="tag">
+      <BilingualSpan es={chapter.sectionLabelEs} en={chapter.sectionLabelEn} />
+    </span>
+    {
+      variant === 'hero' ? (
+        <h1>
+          <slot name="heading" />
+        </h1>
+      ) : (
+        <h2 class="reveal">
+          <slot name="heading" />
+        </h2>
+      )
+    }
+    <p class:list={['lede', { reveal: variant !== 'hero' }]}>
+      <slot name="lede" />
+    </p>
+    <p class:list={['chapter__note', { reveal: variant !== 'hero' }]}>
+      <slot name="note" />
+    </p>
+    {
+      Astro.slots.has('stats') && (
+        <dl class="chapter__stats">
+          <slot name="stats" />
+        </dl>
+      )
+    }
+    <slot name="extra" />
+  </div>
+</section>

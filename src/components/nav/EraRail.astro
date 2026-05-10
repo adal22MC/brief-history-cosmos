@@ -1,0 +1,54 @@
+---
+import { CHAPTERS, RAIL_SOURCES } from '@/content/timeline';
+---
+
+<nav class="era-rail" aria-label="Timeline sections" data-era-rail>
+  <ol class="era-rail__list">
+    {
+      CHAPTERS.map((c) => (
+        <li>
+          <a
+            class="era-rail__link"
+            href={`/#${c.id}`}
+            data-rail-target={c.id}
+            data-rail-era={c.era}
+          >
+            <span class="era-rail__dot" aria-hidden="true" />
+            <span class="era-rail__panel">
+              <span class="era-rail__num">{c.railNum}</span>
+              <span class="era-rail__label">
+                <span data-en>{c.railLabelEn}</span>
+                <span data-es>{c.railLabelEs}</span>
+              </span>
+              <span class="era-rail__tick">
+                <span data-en>{c.railTickEn}</span>
+                <span data-es>{c.railTickEs}</span>
+              </span>
+            </span>
+          </a>
+        </li>
+      ))
+    }
+    <li class="era-rail__source">
+      <a
+        class="era-rail__link"
+        href={RAIL_SOURCES.href}
+        data-rail-source
+        data-rail-era={RAIL_SOURCES.era}
+      >
+        <span class="era-rail__dot" aria-hidden="true" />
+        <span class="era-rail__panel">
+          <span class="era-rail__num">{RAIL_SOURCES.railNum}</span>
+          <span class="era-rail__label">
+            <span data-en>{RAIL_SOURCES.labelEn}</span>
+            <span data-es>{RAIL_SOURCES.labelEs}</span>
+          </span>
+          <span class="era-rail__tick">
+            <span data-en>{RAIL_SOURCES.tickEn}</span>
+            <span data-es>{RAIL_SOURCES.tickEs}</span>
+          </span>
+        </span>
+      </a>
+    </li>
+  </ol>
+</nav>

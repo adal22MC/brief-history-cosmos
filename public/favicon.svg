@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cosmic timeline icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#2a1747"/>
+      <stop offset="58%" stop-color="#090914"/>
+      <stop offset="100%" stop-color="#020208"/>
+    </radialGradient>
+    <linearGradient id="orbit" x1="8" x2="56" y1="52" y2="12">
+      <stop stop-color="#ffb070"/>
+      <stop offset="55%" stop-color="#c2a2ff"/>
+      <stop offset="100%" stop-color="#00e5ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <path d="M12 43c9 8 31 7 40-5 7-9 2-21-11-25" fill="none" stroke="url(#orbit)" stroke-width="3" stroke-linecap="round" opacity=".86"/>
+  <circle cx="24" cy="24" r="9" fill="#f0ebe1" opacity=".94" filter="url(#glow)"/>
+  <circle cx="43" cy="39" r="5" fill="#00e5ff" filter="url(#glow)"/>
+  <circle cx="16" cy="46" r="2" fill="#ffb070"/>
+  <circle cx="49" cy="17" r="1.8" fill="#c2a2ff"/>
+</svg>

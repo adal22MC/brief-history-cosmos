@@ -1,0 +1,15 @@
+---
+import { CHAPTER_COUNT } from '@/content/timeline';
+
+const statusLabel = `01 / ${String(CHAPTER_COUNT).padStart(2, '0')}`;
+---
+
+<nav class="era-mobile" aria-label="Timeline quick navigation" data-era-mobile>
+  <button type="button" class="era-mobile__btn" data-rail-prev aria-label="Previous section">
+    ←
+  </button>
+  <span class="era-mobile__status" data-rail-mobile-status>{statusLabel}</span>
+  <button type="button" class="era-mobile__btn" data-rail-next aria-label="Next section">
+    →
+  </button>
+</nav>

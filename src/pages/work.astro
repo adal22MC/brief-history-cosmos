@@ -1,0 +1,37 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import SourcesList from '@/components/sources/SourcesList.astro';
+import { SOURCES } from '@/content/sources';
+---
+
+<Layout
+  title="Fuentes — Una breve historia del cosmos"
+  titleEs="Fuentes — Una breve historia del cosmos"
+  titleEn="Sources — A brief history of the cosmos"
+>
+  <main id="main">
+    <section class="section chapter hero" data-section-label="Sources" data-section-label-es="Fuentes" data-section-label-en="Sources" data-era="now">
+      <div class="chapter__inner chapter__inner--wide">
+        <span class="chapter__num">01</span>
+        <span class="tag">
+          <span data-es>Fuentes</span><span data-en>Sources</span>
+        </span>
+        <h1>
+          <span data-es>Créditos y referencias</span>
+          <span data-en>Credits and references</span>
+        </h1>
+        <p class="lede">
+          <span data-es>Todo lo que ves arriba se apoya en datos públicos. Aquí están las fuentes.</span>
+          <span data-en>Everything above stands on public data. Here are the sources.</span>
+        </p>
+
+        <SourcesList sources={SOURCES} />
+
+        <a href="/" class="chapter__more">
+          <span data-es>← Volver al inicio</span>
+          <span data-en>← Back to the start</span>
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>

@@ -1,0 +1,79 @@
+---
+import type { Source } from '@/content/sources';
+
+interface Props {
+  sources: Source[];
+}
+
+const { sources } = Astro.props;
+---
+
+<ul class="sources">
+  {
+    sources.map((s) => (
+      <li class="sources__item">
+        <a href={s.url} target="_blank" rel="noopener noreferrer">
+          <h3>
+            <span data-es>{s.title.es}</span>
+            <span data-en>{s.title.en}</span>
+          </h3>
+          <p>
+            <span data-es>{s.detail.es}</span>
+            <span data-en>{s.detail.en}</span>
+          </p>
+          <span class="sources__org">{s.org}</span>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .sources {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .sources__item a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+  }
+
+  .sources__item a:hover {
+    border-color: rgba(194, 162, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .sources__item h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .sources__item p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .sources__org {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 0.5rem;
+  }
+</style>
