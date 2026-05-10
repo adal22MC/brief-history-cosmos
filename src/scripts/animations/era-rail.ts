@@ -161,7 +161,7 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     const shouldReduce = isReduced || reduceMotionQuery.matches;
     if (lenis && !shouldReduce) {
       const distance = Math.abs(section.getBoundingClientRect().top);
-      const duration = gsap.utils.clamp(0.6, 1.1, 0.55 + distance / window.innerHeight * 0.25);
+      const duration = gsap.utils.clamp(0.5, 0.85, 0.45 + distance / window.innerHeight * 0.18);
       lenis.scrollTo(section, { duration });
     } else {
       section.scrollIntoView({ behavior: shouldReduce ? 'auto' : 'smooth', block: 'start' });

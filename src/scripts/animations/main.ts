@@ -65,25 +65,22 @@ export function initAnimations(opts: AnimOpts = {}) {
         return;
       }
 
-      const isTouch = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 1024;
-      let lenis: Lenis | null = null;
-
-      if (!isTouch) {
-        lenis = new Lenis({
-          duration: 0.9,
-          easing: (t) => 1 - Math.pow(1 - t, 3),
-          smoothWheel: true,
-          wheelMultiplier: 1,
-        });
-        lenis.on('scroll', ScrollTrigger.update);
-        const tickerCb = (time: number) => lenis!.raf(time * 1000);
-        gsap.ticker.add(tickerCb);
-        cleanupFns.push(() => {
-          gsap.ticker.remove(tickerCb);
-          lenis?.destroy();
-          lenis = null;
-        });
-      }
+      let lenis: Lenis | null = new Lenis({
+        duration: 0.7,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+        smoothWheel: true,
+        syncTouch: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1,
+      });
+      lenis.on('scroll', ScrollTrigger.update);
+      const tickerCb = (time: number) => lenis!.raf(time * 1000);
+      gsap.ticker.add(tickerCb);
+      cleanupFns.push(() => {
+        gsap.ticker.remove(tickerCb);
+        lenis?.destroy();
+        lenis = null;
+      });
 
       const hero = document.querySelector<HTMLElement>('.hero');
       if (hero) {
