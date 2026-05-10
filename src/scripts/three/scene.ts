@@ -1,31 +1,36 @@
-import * as THREE from 'three';
+import { ACESFilmicToneMapping, AdditiveBlending, BackSide } from 'three/src/constants.js';
+import { AmbientLight } from 'three/src/lights/AmbientLight.js';
+import { BufferAttribute } from 'three/src/core/BufferAttribute.js';
+import { BufferGeometry } from 'three/src/core/BufferGeometry.js';
+import { Clock } from 'three/src/core/Clock.js';
+import { Color } from 'three/src/math/Color.js';
+import { DirectionalLight } from 'three/src/lights/DirectionalLight.js';
+import { FogExp2 } from 'three/src/scenes/FogExp2.js';
+import { Group } from 'three/src/objects/Group.js';
+import { Mesh } from 'three/src/objects/Mesh.js';
+import { MeshBasicMaterial } from 'three/src/materials/MeshBasicMaterial.js';
+import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js';
+import { Points } from 'three/src/objects/Points.js';
+import { Scene } from 'three/src/scenes/Scene.js';
+import { ShaderMaterial } from 'three/src/materials/ShaderMaterial.js';
+import { SphereGeometry } from 'three/src/geometries/SphereGeometry.js';
+import { TorusGeometry } from 'three/src/geometries/TorusGeometry.js';
+import { WebGLRenderer } from 'three/src/renderers/WebGLRenderer.js';
+import type { Object3D } from 'three/src/core/Object3D.js';
 import { gsap } from 'gsap';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { ChromaticAberrationShader } from './chromatic-aberration';
 import { ERA_PRESETS, type Era } from './era-presets';
 
-export interface SceneOptions {
-  modelUrl?: string;
-  modelScale?: number;
-}
+export type SceneOptions = Record<string, never>;
 
 export interface SceneAPI {
   setEra(era: Era, duration?: number): void;
 }
 
-export function initThreeScene(
-  canvas: HTMLCanvasElement,
-  opts: SceneOptions = {},
-): SceneAPI {
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x05050a, 0.025);
+export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
+  const scene = new Scene();
+  scene.fog = new FogExp2(0x05050a, 0.025);
 
-  const camera = new THREE.PerspectiveCamera(
+  const camera = new PerspectiveCamera(
     60,
     window.innerWidth / window.innerHeight,
     0.1,
@@ -33,45 +38,23 @@ export function initThreeScene(
   );
   camera.position.set(0, 0, 6);
 
-  const renderer = new THREE.WebGLRenderer({
+  const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
     alpha: true,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.85;
 
-  const composer = new EffectComposer(renderer);
-  composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  composer.setSize(window.innerWidth, window.innerHeight);
-
-  const renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera());
-  composer.addPass(renderPass);
-
-  // Bloom contenido: solo los highlights brillan, no toda la imagen.
-  const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.28, // strength
-    0.45, // radius
-    0.7,  // threshold — sólo los píxeles más brillantes hacen bloom
-  );
-  composer.addPass(bloomPass);
-
-  const chromaticPass = new ShaderPass(ChromaticAberrationShader);
-  composer.addPass(chromaticPass);
-
-  const outputPass = new OutputPass();
-  composer.addPass(outputPass);
-
-  const geometry = new THREE.SphereGeometry(1.08, 96, 96);
-  const material = new THREE.ShaderMaterial({
+  const geometry = new SphereGeometry(1.08, 96, 96);
+  const material = new ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uScroll: { value: 0 },
-      uColorA: { value: new THREE.Color('#c2a2ff') },
-      uColorB: { value: new THREE.Color('#00e5ff') },
+      uColorA: { value: new Color('#c2a2ff') },
+      uColorB: { value: new Color('#00e5ff') },
       uTimeScale: { value: 1.0 },
       uNoiseFreq: { value: 0.9 },
       uIntensity: { value: 1.0 },
@@ -184,21 +167,21 @@ export function initThreeScene(
     `,
   });
 
-  const blob = new THREE.Mesh(geometry, material);
+  const blob = new Mesh(geometry, material);
   blob.position.set(2.2, -0.6, 0); // off-center, abajo a la derecha
 
-  const ringGroup = new THREE.Group();
-  const ringGeo = new THREE.TorusGeometry(1.55, 0.008, 8, 180);
-  const ringMat = new THREE.MeshBasicMaterial({
+  const ringGroup = new Group();
+  const ringGeo = new TorusGeometry(1.55, 0.008, 8, 180);
+  const ringMat = new MeshBasicMaterial({
     color: '#c2a2ff',
     transparent: true,
     opacity: 0.34,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
   });
-  const ringA = new THREE.Mesh(ringGeo, ringMat);
+  const ringA = new Mesh(ringGeo, ringMat);
   ringA.rotation.set(1.15, 0.28, 0.45);
-  const ringB = new THREE.Mesh(ringGeo, ringMat.clone());
+  const ringB = new Mesh(ringGeo, ringMat.clone());
   ringB.material.opacity = 0.2;
   ringB.scale.setScalar(1.28);
   ringB.rotation.set(1.55, -0.5, -0.2);
@@ -207,16 +190,16 @@ export function initThreeScene(
   scene.add(blob);
 
   // ───────── Aurora skybox: envuelve la cámara con un campo de color animado.
-  const auroraGeo = new THREE.SphereGeometry(60, 32, 32);
-  const auroraMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
+  const auroraGeo = new SphereGeometry(60, 32, 32);
+  const auroraMat = new ShaderMaterial({
+    side: BackSide,
     depthWrite: false,
     fog: false,
     uniforms: {
       uTime: { value: 0 },
       uScroll: { value: 0 },
-      uTintA: { value: new THREE.Color(0x2e0a52) },
-      uTintB: { value: new THREE.Color(0x005a6b) },
+      uTintA: { value: new Color(0x2e0a52) },
+      uTintB: { value: new Color(0x005a6b) },
       uIntensity: { value: 0.7 },
     },
     vertexShader: /* glsl */ `
@@ -274,37 +257,17 @@ export function initThreeScene(
       }
     `,
   });
-  const aurora = new THREE.Mesh(auroraGeo, auroraMat);
+  const aurora = new Mesh(auroraGeo, auroraMat);
   scene.add(aurora);
 
-  renderPass.scene = scene;
-  renderPass.camera = camera;
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const keyLight = new THREE.DirectionalLight(0xc2a2ff, 1.2);
+  const ambient = new AmbientLight(0xffffff, 0.6);
+  const keyLight = new DirectionalLight(0xc2a2ff, 1.2);
   keyLight.position.set(3, 4, 5);
-  const rimLight = new THREE.DirectionalLight(0x00e5ff, 0.8);
+  const rimLight = new DirectionalLight(0x00e5ff, 0.8);
   rimLight.position.set(-3, -2, -4);
   scene.add(ambient, keyLight, rimLight);
 
-  let activeObject: THREE.Object3D = blob;
-
-  if (opts.modelUrl) {
-    const loader = new GLTFLoader();
-    loader.load(
-      opts.modelUrl,
-      (gltf) => {
-        const model = gltf.scene;
-        const scale = opts.modelScale ?? 1.6;
-        model.scale.setScalar(scale);
-        scene.remove(blob);
-        scene.add(model);
-        activeObject = model;
-      },
-      undefined,
-      (err) => console.error('GLTF load error:', err),
-    );
-  }
+  const activeObject: Object3D = blob;
 
   // ───────── Starfield: cada estrella tiene tamaño y fase de parpadeo propios.
   const particleCount = 1400;
@@ -322,14 +285,14 @@ export function initThreeScene(
     sizes[i] = 0.5 + Math.random() * 2.5;
     phases[i] = Math.random();
   }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  pGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-  pGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
-  const pMat = new THREE.ShaderMaterial({
+  const pGeo = new BufferGeometry();
+  pGeo.setAttribute('position', new BufferAttribute(positions, 3));
+  pGeo.setAttribute('aSize', new BufferAttribute(sizes, 1));
+  pGeo.setAttribute('aPhase', new BufferAttribute(phases, 1));
+  const pMat = new ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     fog: false,
     uniforms: {
       uTime: { value: 0 },
@@ -362,7 +325,7 @@ export function initThreeScene(
       }
     `,
   });
-  const points = new THREE.Points(pGeo, pMat);
+  const points = new Points(pGeo, pMat);
   scene.add(points);
 
   const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -382,12 +345,10 @@ export function initThreeScene(
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
-    bloomPass.setSize(window.innerWidth, window.innerHeight);
     pMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
   });
 
-  const clock = new THREE.Clock();
+  const clock = new Clock();
   function tick() {
     const t = clock.getElapsedTime();
     mouse.x += (mouse.tx - mouse.x) * 0.05;
@@ -405,8 +366,7 @@ export function initThreeScene(
     // Posición base off-center + leve parallax del cursor.
     activeObject.position.x = 2.2 + mouse.x * 0.16;
     activeObject.position.y = -0.6 + mouse.y * 0.1;
-    const baseScale = activeObject === blob ? 1 : (opts.modelScale ?? 1.6);
-    activeObject.scale.setScalar(baseScale * (1 - scrollProgress * 0.08));
+    activeObject.scale.setScalar(1 - scrollProgress * 0.08);
 
     // Parallax del starfield + giro lento de la aurora.
     points.rotation.y = t * 0.015 + mouse.x * 0.025;
@@ -420,11 +380,7 @@ export function initThreeScene(
     camera.position.z = 6 + scrollProgress * 4;
     camera.lookAt(0, 0, 0);
 
-    chromaticPass.uniforms.uScroll.value = scrollProgress;
-    // Bloom mucho más comedido — sólo realza highlights.
-    bloomPass.strength = 0.28 + scrollProgress * 0.18;
-
-    composer.render();
+    renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
@@ -433,43 +389,43 @@ export function initThreeScene(
   const setEra = (era: Era, duration = 1.4) => {
     const p = ERA_PRESETS[era];
     gsap.to(material.uniforms.uColorA.value, {
-      r: new THREE.Color(p.blobA).r,
-      g: new THREE.Color(p.blobA).g,
-      b: new THREE.Color(p.blobA).b,
+      r: new Color(p.blobA).r,
+      g: new Color(p.blobA).g,
+      b: new Color(p.blobA).b,
       duration, ease: 'power2.inOut',
     });
     gsap.to(material.uniforms.uColorB.value, {
-      r: new THREE.Color(p.blobB).r,
-      g: new THREE.Color(p.blobB).g,
-      b: new THREE.Color(p.blobB).b,
+      r: new Color(p.blobB).r,
+      g: new Color(p.blobB).g,
+      b: new Color(p.blobB).b,
       duration, ease: 'power2.inOut',
     });
     gsap.to(material.uniforms.uTimeScale, { value: p.blobTimeScale, duration, ease: 'power2.inOut' });
     gsap.to(material.uniforms.uNoiseFreq, { value: p.blobNoiseFreq, duration, ease: 'power2.inOut' });
     gsap.to(material.uniforms.uIntensity, { value: p.blobIntensity, duration, ease: 'power2.inOut' });
-    gsap.to((ringA.material as THREE.MeshBasicMaterial).color, {
-      r: new THREE.Color(p.blobA).r,
-      g: new THREE.Color(p.blobA).g,
-      b: new THREE.Color(p.blobA).b,
+    gsap.to((ringA.material as MeshBasicMaterial).color, {
+      r: new Color(p.blobA).r,
+      g: new Color(p.blobA).g,
+      b: new Color(p.blobA).b,
       duration, ease: 'power2.inOut',
     });
-    gsap.to((ringB.material as THREE.MeshBasicMaterial).color, {
-      r: new THREE.Color(p.blobB).r,
-      g: new THREE.Color(p.blobB).g,
-      b: new THREE.Color(p.blobB).b,
+    gsap.to((ringB.material as MeshBasicMaterial).color, {
+      r: new Color(p.blobB).r,
+      g: new Color(p.blobB).g,
+      b: new Color(p.blobB).b,
       duration, ease: 'power2.inOut',
     });
 
     gsap.to(auroraMat.uniforms.uTintA.value, {
-      r: new THREE.Color(p.auroraA).r,
-      g: new THREE.Color(p.auroraA).g,
-      b: new THREE.Color(p.auroraA).b,
+      r: new Color(p.auroraA).r,
+      g: new Color(p.auroraA).g,
+      b: new Color(p.auroraA).b,
       duration, ease: 'power2.inOut',
     });
     gsap.to(auroraMat.uniforms.uTintB.value, {
-      r: new THREE.Color(p.auroraB).r,
-      g: new THREE.Color(p.auroraB).g,
-      b: new THREE.Color(p.auroraB).b,
+      r: new Color(p.auroraB).r,
+      g: new Color(p.auroraB).g,
+      b: new Color(p.auroraB).b,
       duration, ease: 'power2.inOut',
     });
     gsap.to(auroraMat.uniforms.uIntensity, { value: p.auroraIntensity, duration, ease: 'power2.inOut' });

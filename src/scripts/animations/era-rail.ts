@@ -1,6 +1,6 @@
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
-import { ERA_ACCENTS, type Era } from '../three-scene';
+import { ERA_ACCENTS, type Era } from '../three/era-presets';
 
 export type CleanupFn = () => void;
 

@@ -140,18 +140,16 @@ const jsonLd = {
       })();
     </script>
     <script>
-      import { initThreeScene } from '@/scripts/three-scene';
       import { initAnimations } from '@/scripts/animations';
 
-      function bootCosmos() {
+      async function bootCosmos() {
         const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement | null;
-        let sceneApi: ReturnType<typeof initThreeScene> | null = null;
+        let sceneApi = window.__sceneApi ?? null;
         if (canvas && !canvas.dataset.booted) {
+          const { initThreeScene } = await import('@/scripts/three/scene');
           sceneApi = initThreeScene(canvas);
           canvas.dataset.booted = '1';
           window.__sceneApi = sceneApi;
-        } else {
-          sceneApi = window.__sceneApi ?? null;
         }
         initAnimations({ sceneApi });
       }

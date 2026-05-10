@@ -1,5 +1,5 @@
-import type { SceneAPI } from '../three-scene';
-import { initIssGlobe } from '../three-scene';
+import type { SceneAPI } from '../three/scene';
+import type { IssGlobeAPI } from '../three/iss-globe';
 
 const APOD_CACHE_KEY = 'apod-cache-v1';
 const APOD_TTL_MS = 1000 * 60 * 60 * 6; // 6h
@@ -21,9 +21,10 @@ interface IssResponse {
   velocity: number;
 }
 
-let issGlobeApi: ReturnType<typeof initIssGlobe> | null = null;
+let issGlobeApi: IssGlobeAPI | null = null;
 let issTimer: number | null = null;
 let issCanvas: HTMLCanvasElement | null = null;
+let issLoadId = 0;
 
 export function initLiveData(_sceneApi: SceneAPI | null) {
   const nowSection = document.querySelector<HTMLElement>('.chapter--now');
@@ -55,6 +56,7 @@ export function initLiveData(_sceneApi: SceneAPI | null) {
       issGlobeApi.destroy();
       issGlobeApi = null;
     }
+    issLoadId++;
     issCanvas = null;
   };
 }
@@ -120,12 +122,19 @@ async function loadApod() {
     : `Public domain · NASA · ${data.date}`;
 }
 
-function loadIssLoop() {
+async function loadIssLoop() {
   const canvas = document.querySelector<HTMLCanvasElement>('[data-iss-canvas]');
   if (canvas && canvas !== issCanvas) {
     if (issGlobeApi) issGlobeApi.destroy();
     issCanvas = canvas;
-    issGlobeApi = initIssGlobe(canvas);
+    const loadId = ++issLoadId;
+    try {
+      const { initIssGlobe } = await import('../three/iss-globe');
+      if (loadId !== issLoadId || !canvas.isConnected) return;
+      issGlobeApi = initIssGlobe(canvas);
+    } catch (err) {
+      console.warn('ISS globe failed to load:', err);
+    }
   }
   if (issTimer) {
     clearInterval(issTimer);

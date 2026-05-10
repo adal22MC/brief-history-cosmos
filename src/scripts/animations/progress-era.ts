@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import type { Era, SceneAPI } from '../three-scene';
+import type { SceneAPI } from '../three/scene';
+import type { Era } from '../three/era-presets';
 
 export function initProgressBar() {
   const progressBar = document.querySelector<HTMLElement>('.scroll-progress span');

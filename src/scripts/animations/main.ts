@@ -1,7 +1,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import type { SceneAPI } from '../three-scene';
+import type { SceneAPI } from '../three/scene';
 import { initLanguageToggle } from './language-toggle';
 import { initProgressBar, initSectionIndex, initEraDriver } from './progress-era';
 import { initEraRail, type CleanupFn } from './era-rail';

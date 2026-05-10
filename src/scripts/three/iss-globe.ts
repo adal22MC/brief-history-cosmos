@@ -1,4 +1,31 @@
-import * as THREE from 'three';
+import {
+  ACESFilmicToneMapping,
+  AdditiveBlending,
+  BackSide,
+  SRGBColorSpace,
+} from 'three/src/constants.js';
+import { BufferAttribute } from 'three/src/core/BufferAttribute.js';
+import { BufferGeometry } from 'three/src/core/BufferGeometry.js';
+import { CanvasTexture } from 'three/src/textures/CanvasTexture.js';
+import { Clock } from 'three/src/core/Clock.js';
+import { Group } from 'three/src/objects/Group.js';
+import { Line } from 'three/src/objects/Line.js';
+import { LineBasicMaterial } from 'three/src/materials/LineBasicMaterial.js';
+import { MathUtils } from 'three/src/math/MathUtils.js';
+import { Mesh } from 'three/src/objects/Mesh.js';
+import { MeshBasicMaterial } from 'three/src/materials/MeshBasicMaterial.js';
+import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js';
+import { Points } from 'three/src/objects/Points.js';
+import { PointsMaterial } from 'three/src/materials/PointsMaterial.js';
+import { Scene } from 'three/src/scenes/Scene.js';
+import { ShaderMaterial } from 'three/src/materials/ShaderMaterial.js';
+import { SphereGeometry } from 'three/src/geometries/SphereGeometry.js';
+import { Sprite } from 'three/src/objects/Sprite.js';
+import { SpriteMaterial } from 'three/src/materials/SpriteMaterial.js';
+import { TorusGeometry } from 'three/src/geometries/TorusGeometry.js';
+import { Vector3 } from 'three/src/math/Vector3.js';
+import { WebGLRenderer } from 'three/src/renderers/WebGLRenderer.js';
+import type { Material } from 'three/src/materials/Material.js';
 
 export interface IssGlobeAPI {
   updatePosition(lat: number, lon: number): void;
@@ -8,7 +35,7 @@ export interface IssGlobeAPI {
 function latLonToVec3(lat: number, lon: number, radius: number) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
-  return new THREE.Vector3(
+  return new Vector3(
     -radius * Math.sin(phi) * Math.cos(theta),
     radius * Math.cos(phi),
     radius * Math.sin(phi) * Math.sin(theta),
@@ -37,10 +64,10 @@ function createIssLabel() {
     ctx.fillText('ISS', 64, 25);
   }
 
-  const texture = new THREE.CanvasTexture(labelCanvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({
+  const texture = new CanvasTexture(labelCanvas);
+  texture.colorSpace = SRGBColorSpace;
+  const sprite = new Sprite(
+    new SpriteMaterial({
       map: texture,
       transparent: true,
       depthTest: false,
@@ -54,14 +81,14 @@ function createIssLabel() {
 }
 
 export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.outputColorSpace = SRGBColorSpace;
+  renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(42, 1, 0.1, 100);
   camera.position.set(0, 0.18, 4.35);
 
   const resize = () => {
@@ -74,8 +101,8 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   };
 
   // Earth procedural — fbm sobre la posición da un patrón continente/océano estilizado.
-  const earthGeo = new THREE.SphereGeometry(1, 96, 96);
-  const earthMat = new THREE.ShaderMaterial({
+  const earthGeo = new SphereGeometry(1, 96, 96);
+  const earthMat = new ShaderMaterial({
     uniforms: { uTime: { value: 0 } },
     vertexShader: /* glsl */ `
       varying vec3 vNormal;
@@ -137,12 +164,12 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
       }
     `,
   });
-  const earth = new THREE.Mesh(earthGeo, earthMat);
-  earth.rotation.z = THREE.MathUtils.degToRad(-23.4);
+  const earth = new Mesh(earthGeo, earthMat);
+  earth.rotation.z = MathUtils.degToRad(-23.4);
   scene.add(earth);
 
-  const cloudGeo = new THREE.SphereGeometry(1.018, 64, 64);
-  const cloudMat = new THREE.ShaderMaterial({
+  const cloudGeo = new SphereGeometry(1.018, 64, 64);
+  const cloudMat = new ShaderMaterial({
     transparent: true,
     depthWrite: false,
     uniforms: { uTime: { value: 0 } },
@@ -182,17 +209,17 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
       }
     `,
   });
-  const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+  const clouds = new Mesh(cloudGeo, cloudMat);
   clouds.rotation.z = earth.rotation.z;
   scene.add(clouds);
 
   // Halo atmosférico exterior.
-  const haloGeo = new THREE.SphereGeometry(1.06, 64, 64);
-  const haloMat = new THREE.ShaderMaterial({
+  const haloGeo = new SphereGeometry(1.06, 64, 64);
+  const haloMat = new ShaderMaterial({
     transparent: true,
-    side: THREE.BackSide,
+    side: BackSide,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     vertexShader: /* glsl */ `
       varying vec3 vNormal;
       void main() {
@@ -208,18 +235,18 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
       }
     `,
   });
-  const halo = new THREE.Mesh(haloGeo, haloMat);
+  const halo = new Mesh(haloGeo, haloMat);
   scene.add(halo);
 
-  const orbitGroup = new THREE.Group();
-  orbitGroup.rotation.set(THREE.MathUtils.degToRad(51.6), 0, THREE.MathUtils.degToRad(-18));
-  const orbit = new THREE.Mesh(
-    new THREE.TorusGeometry(1.064, 0.0035, 8, 180),
-    new THREE.MeshBasicMaterial({
+  const orbitGroup = new Group();
+  orbitGroup.rotation.set(MathUtils.degToRad(51.6), 0, MathUtils.degToRad(-18));
+  const orbit = new Mesh(
+    new TorusGeometry(1.064, 0.0035, 8, 180),
+    new MeshBasicMaterial({
       color: 0x7fd7ff,
       transparent: true,
       opacity: 0.32,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
     }),
   );
@@ -228,22 +255,22 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   scene.add(orbitGroup);
 
   // Marcador ISS — pequeña esfera con halo aditivo.
-  const issGroup = new THREE.Group();
-  const issCore = new THREE.Mesh(
-    new THREE.SphereGeometry(0.04, 20, 20),
-    new THREE.MeshBasicMaterial({
+  const issGroup = new Group();
+  const issCore = new Mesh(
+    new SphereGeometry(0.04, 20, 20),
+    new MeshBasicMaterial({
       color: 0xfff2c2,
       depthTest: false,
       depthWrite: false,
     }),
   );
-  const issGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 24, 24),
-    new THREE.MeshBasicMaterial({
+  const issGlow = new Mesh(
+    new SphereGeometry(0.13, 24, 24),
+    new MeshBasicMaterial({
       color: 0xffb45c,
       transparent: true,
       opacity: 0.36,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthTest: false,
       depthWrite: false,
     }),
@@ -260,17 +287,17 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   // Estela — línea que sigue al marcador últimas N posiciones.
   const trailMax = 80;
   const trailPos = new Float32Array(trailMax * 3);
-  const trailGeo = new THREE.BufferGeometry();
-  trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+  const trailGeo = new BufferGeometry();
+  trailGeo.setAttribute('position', new BufferAttribute(trailPos, 3));
   trailGeo.setDrawRange(0, 0);
-  const trailMat = new THREE.LineBasicMaterial({
+  const trailMat = new LineBasicMaterial({
     color: 0xffb45c,
     transparent: true,
     opacity: 0.22,
     depthTest: false,
     depthWrite: false,
   });
-  const trail = new THREE.Line(trailGeo, trailMat);
+  const trail = new Line(trailGeo, trailMat);
   trail.renderOrder = 5;
   scene.add(trail);
   let trailCount = 0;
@@ -285,17 +312,17 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
     starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
     starPositions[i * 3 + 2] = r * Math.cos(phi);
   }
-  const starsGeo = new THREE.BufferGeometry();
-  starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const starsMat = new THREE.PointsMaterial({
+  const starsGeo = new BufferGeometry();
+  starsGeo.setAttribute('position', new BufferAttribute(starPositions, 3));
+  const starsMat = new PointsMaterial({
     color: 0xdfeaff,
     size: 0.014,
     transparent: true,
     opacity: 0.32,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
   });
-  const stars = new THREE.Points(starsGeo, starsMat);
+  const stars = new Points(starsGeo, starsMat);
   scene.add(stars);
 
   resize();
@@ -304,7 +331,7 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   ro.observe(canvas);
 
   let raf = 0;
-  const clock = new THREE.Clock();
+  const clock = new Clock();
   const tick = () => {
     const t = clock.getElapsedTime();
     earthMat.uniforms.uTime.value = t;
@@ -314,7 +341,7 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
     halo.rotation.y = t * 0.05;
     issGroup.rotation.y = t * 0.05; // mantiene al ISS solidario con la rotación visual.
     trail.rotation.y = t * 0.05;
-    orbitGroup.rotation.z = THREE.MathUtils.degToRad(-18) + Math.sin(t * 0.18) * 0.05;
+    orbitGroup.rotation.z = MathUtils.degToRad(-18) + Math.sin(t * 0.18) * 0.05;
     stars.rotation.y = t * 0.01;
     const pulse = 1 + Math.sin(t * 3.1) * 0.18;
     issGlow.scale.setScalar(pulse);
@@ -348,13 +375,13 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
     haloGeo.dispose();
     haloMat.dispose();
     orbit.geometry.dispose();
-    (orbit.material as THREE.Material).dispose();
+    (orbit.material as Material).dispose();
     issCore.geometry.dispose();
-    (issCore.material as THREE.Material).dispose();
+    (issCore.material as Material).dispose();
     issGlow.geometry.dispose();
-    (issGlow.material as THREE.Material).dispose();
+    (issGlow.material as Material).dispose();
     issLabelTexture.dispose();
-    (issLabel.material as THREE.Material).dispose();
+    (issLabel.material as Material).dispose();
     trailGeo.dispose();
     trailMat.dispose();
     starsGeo.dispose();

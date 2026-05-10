@@ -1,6 +1,6 @@
 /// <reference types="astro/client" />
 
-import type { SceneAPI } from './scripts/three-scene';
+import type { SceneAPI } from './scripts/three/scene';
 
 declare global {
   interface Window {

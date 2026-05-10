@@ -1,4 +1,4 @@
-import type { Era } from '@/scripts/three-scene';
+import type { Era } from '@/scripts/three/era-presets';
 
 export interface ChapterMeta {
   id: string;
