@@ -34,14 +34,21 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   onCleanup(() => rail.removeAttribute('data-booted'));
 
   const sections = gsap.utils.toArray<HTMLElement>('[data-rail-section]');
-  const links = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-target]');
+  const railLinks = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-target]:not([data-rail-mobile-item])');
+  const sheetItems = gsap.utils.toArray<HTMLButtonElement>('[data-rail-mobile-item]');
+  const links = [...railLinks, ...sheetItems] as Array<HTMLAnchorElement | HTMLButtonElement>;
   const sourceLink = document.querySelector<HTMLAnchorElement>('[data-rail-source]');
-  const prevBtn = document.querySelector<HTMLButtonElement>('[data-rail-prev]');
-  const nextBtn = document.querySelector<HTMLButtonElement>('[data-rail-next]');
+  const mobileTrigger = document.querySelector<HTMLButtonElement>('[data-rail-mobile-trigger]');
+  const mobileSheet = document.querySelector<HTMLElement>('[data-rail-mobile-sheet]');
+  const mobileBackdrop = document.querySelector<HTMLElement>('[data-rail-mobile-backdrop]');
+  const mobileClose = document.querySelector<HTMLButtonElement>('[data-rail-mobile-close]');
   const mobileStatus = document.querySelector<HTMLElement>('[data-rail-mobile-status]');
   const mobileLabel = document.querySelector<HTMLElement>('[data-rail-mobile-label]');
+  const sheetBilingual = mobile?.querySelectorAll<HTMLElement>('[data-bilingual-es]');
   const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   let activeIndex = 0;
+  let sheetOpen = false;
+  let sheetHideTimer: number | undefined;
 
   document.querySelectorAll<HTMLElement>('[data-rail-era]').forEach((el) => {
     const era = el.dataset.railEra as Era | undefined;
@@ -53,15 +60,15 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     const activeSection = sections[activeIndex];
     const activeId = activeSection?.id;
     const activeEra = activeSection?.dataset.era as Era | undefined;
+    const isSourcePage = location.pathname.startsWith('/work');
 
     links.forEach((link) => {
-      const isActive = Boolean(activeId && link.dataset.railTarget === activeId);
+      const isActive = Boolean(!isSourcePage && activeId && link.dataset.railTarget === activeId);
       link.classList.toggle('is-active', isActive);
       link.setAttribute('aria-current', isActive ? 'location' : 'false');
     });
 
     if (sourceLink) {
-      const isSourcePage = location.pathname.startsWith('/work');
       sourceLink.classList.toggle('is-active', isSourcePage);
       sourceLink.setAttribute('aria-current', isSourcePage ? 'page' : 'false');
     }
@@ -70,16 +77,54 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
       document.documentElement.style.setProperty('--era-accent', ERA_ACCENTS[activeEra]);
     }
     if (mobileStatus) {
-      mobileStatus.textContent = sections.length
-        ? `${String(activeIndex + 1).padStart(2, '0')} / ${String(sections.length).padStart(2, '0')}`
+      mobileStatus.textContent = isSourcePage
+        ? '01'
+        : sections.length
+        ? String(activeIndex + 1).padStart(2, '0')
         : 'SRC';
     }
     if (mobileLabel) {
       mobileLabel.textContent =
         sections.length && activeSection ? getRailSectionLabel(activeSection as HTMLElement) : '';
     }
-    if (prevBtn) prevBtn.disabled = !sections.length || activeIndex === 0;
-    if (nextBtn) nextBtn.disabled = !sections.length || activeIndex === sections.length - 1;
+    sheetItems.forEach((item, idx) => {
+      const isActive = !isSourcePage && idx === activeIndex;
+      item.classList.toggle('is-active', isActive);
+      item.setAttribute('aria-current', isActive ? 'location' : 'false');
+    });
+  };
+
+  const syncSheetBilingual = () => {
+    if (!sheetBilingual) return;
+    const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
+    sheetBilingual.forEach((el) => {
+      const text = lang === 'en' ? el.dataset.bilingualEn : el.dataset.bilingualEs;
+      if (text) el.textContent = text;
+    });
+  };
+
+  const setSheetOpen = (open: boolean) => {
+    if (!mobileSheet || !mobileTrigger) return;
+    sheetOpen = open;
+    window.clearTimeout(sheetHideTimer);
+    if (open) {
+      mobileSheet.removeAttribute('hidden');
+      requestAnimationFrame(() => mobileSheet.classList.add('is-open'));
+    } else {
+      mobileSheet.classList.remove('is-open');
+      sheetHideTimer = window.setTimeout(() => {
+        if (!sheetOpen) mobileSheet.setAttribute('hidden', '');
+      }, 280);
+    }
+    mobileTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.classList.toggle('era-sheet-locked', open);
+    if (open) {
+      syncSheetBilingual();
+      const activeItem = location.pathname.startsWith('/work') ? undefined : sheetItems[activeIndex];
+      activeItem?.focus({ preventScroll: true });
+    } else {
+      mobileTrigger.focus({ preventScroll: true });
+    }
   };
 
   const getNearestSectionIndex = () => {
@@ -115,9 +160,11 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (!section) return;
     const shouldReduce = isReduced || reduceMotionQuery.matches;
     if (lenis && !shouldReduce) {
-      lenis.scrollTo(section, { duration: 1.2 });
+      const distance = Math.abs(section.getBoundingClientRect().top);
+      const duration = gsap.utils.clamp(0.6, 1.1, 0.55 + distance / window.innerHeight * 0.25);
+      lenis.scrollTo(section, { duration });
     } else {
-      section.scrollIntoView({ behavior: 'auto', block: 'start' });
+      section.scrollIntoView({ behavior: shouldReduce ? 'auto' : 'smooth', block: 'start' });
     }
     setActive(index);
   };
@@ -137,13 +184,35 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
       const targetIndex = sections.findIndex((sec) => sec.id === targetId);
       if (targetIndex < 0) return;
       event.preventDefault();
+      const wasOpen = sheetOpen;
       scrollToSection(targetIndex);
+      if (wasOpen) setSheetOpen(false);
     });
-    link.setAttribute('aria-label', `Go to section ${String(index + 1).padStart(2, '0')}`);
+    if (!link.hasAttribute('aria-label')) {
+      link.setAttribute('aria-label', `Go to section ${String(index + 1).padStart(2, '0')}`);
+    }
   });
 
-  if (prevBtn) listen<MouseEvent>(prevBtn, 'click', () => scrollToSection(activeIndex - 1));
-  if (nextBtn) listen<MouseEvent>(nextBtn, 'click', () => scrollToSection(activeIndex + 1));
+  if (mobileTrigger) {
+    listen<MouseEvent>(mobileTrigger, 'click', () => setSheetOpen(!sheetOpen));
+  }
+  if (mobileBackdrop) {
+    listen<MouseEvent>(mobileBackdrop, 'click', () => setSheetOpen(false));
+  }
+  if (mobileClose) {
+    listen<MouseEvent>(mobileClose, 'click', () => setSheetOpen(false));
+  }
+
+  const forceCloseSheet = () => {
+    window.clearTimeout(sheetHideTimer);
+    sheetOpen = false;
+    mobileSheet?.setAttribute('hidden', '');
+    mobileSheet?.classList.remove('is-open');
+    mobileTrigger?.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('era-sheet-locked');
+  };
+  listen(document, 'astro:before-swap', forceCloseSheet);
+  onCleanup(forceCloseSheet);
 
   listen<CustomEvent<{ id?: string }>>(document, 'cosmos:section-change', (event) => {
     const detail = (event as CustomEvent<{ id?: string }>).detail;
@@ -151,11 +220,20 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (index >= 0) setActive(index);
   });
 
-  listen(document, 'cosmos:language-change', () => setActive(activeIndex));
+  listen(document, 'cosmos:language-change', () => {
+    syncSheetBilingual();
+    setActive(activeIndex);
+  });
   listen<KeyboardEvent>(document, 'keydown', (event) => {
+    if (event.key === 'Escape' && sheetOpen) {
+      event.preventDefault();
+      setSheetOpen(false);
+      return;
+    }
     if (!sections.length) return;
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (isEditableTarget(event.target)) return;
+    if (sheetOpen) return;
 
     const digit = parseInt(event.key, 10);
     if (Number.isInteger(digit) && digit >= 1 && digit <= sections.length) {

@@ -267,8 +267,8 @@ main {
   .era-rail {
     display: none;
   }
-  .era-mobile {
-    display: flex;
+  .era-mobile-host {
+    display: contents;
   }
   .section-index {
     display: none;

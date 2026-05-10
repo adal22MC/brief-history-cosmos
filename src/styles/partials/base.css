@@ -18,6 +18,7 @@ html, body {
   color: var(--fg);
   font-family: var(--font-display);
   overflow-x: hidden;
+  overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
 }
 

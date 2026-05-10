@@ -1,34 +1,93 @@
 ---
-import { CHAPTER_COUNT } from '@/content/timeline';
+import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
 
-const statusLabel = `01 / ${String(CHAPTER_COUNT).padStart(2, '0')}`;
+const initialChapter = CHAPTERS[0];
+const initialNum = initialChapter?.railNum ?? '01';
 ---
 
-<nav class="era-mobile" aria-label="Timeline quick navigation" data-era-mobile>
-  <button type="button" class="era-mobile__btn" data-rail-prev aria-label="Previous section">
-    <svg class="era-mobile__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M14 17l-5-5 5-5"></path>
-    </svg>
+<div class="era-mobile-host" data-era-mobile>
+  <button
+    type="button"
+    class="era-mobile"
+    data-rail-mobile-trigger
+    aria-expanded="false"
+    aria-controls="era-mobile-sheet"
+    aria-label="Open chapter navigation"
+  >
+    <span class="era-mobile__num" data-rail-mobile-status>{initialNum}</span>
+    <span class="era-mobile__divider" aria-hidden="true"></span>
+    <span class="era-mobile__detail" aria-live="polite">
+      <span class="era-mobile__label" data-rail-mobile-label>{initialChapter?.sectionLabelEs ?? ''}</span>
+    </span>
+    <span class="era-mobile__caret" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24">
+        <path
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M7 14l5-5 5 5"></path>
+      </svg>
+    </span>
   </button>
-  <div class="era-mobile__detail" aria-live="polite">
-    <span class="era-mobile__label" data-rail-mobile-label="" />
-    <span class="era-mobile__status" data-rail-mobile-status>{statusLabel}</span>
+
+  <div
+    class="era-sheet"
+    id="era-mobile-sheet"
+    data-rail-mobile-sheet
+    role="dialog"
+    aria-modal="true"
+    aria-label="Chapter navigation"
+    hidden
+  >
+    <div class="era-sheet__backdrop" data-rail-mobile-backdrop aria-hidden="true"></div>
+    <div class="era-sheet__panel" role="document">
+      <div class="era-sheet__handle" aria-hidden="true"></div>
+      <header class="era-sheet__header">
+        <span class="era-sheet__title">
+          <span data-es>Cosmos · {CHAPTER_COUNT} épocas</span>
+          <span data-en>Cosmos · {CHAPTER_COUNT} eras</span>
+        </span>
+        <button
+          type="button"
+          class="era-sheet__close"
+          data-rail-mobile-close
+          aria-label="Close chapter navigation"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 6l12 12M18 6L6 18"></path>
+          </svg>
+        </button>
+      </header>
+      <ul class="era-sheet__list" role="list">
+        {CHAPTERS.map((chapter, index) => (
+          <li>
+            <a
+              class="era-sheet__item"
+              data-rail-mobile-item
+              data-rail-target={chapter.id}
+              data-rail-index={index}
+              href={`/#${chapter.id}`}
+              style={`--sheet-color: ${ERA_ACCENTS[chapter.era]}`}
+            >
+              <span class="era-sheet__dot" aria-hidden="true"></span>
+              <span class="era-sheet__num">{chapter.railNum}</span>
+              <span class="era-sheet__copy">
+                <span class="era-sheet__label" data-bilingual-es={chapter.sectionLabelEs} data-bilingual-en={chapter.sectionLabelEn}>{chapter.sectionLabelEs}</span>
+                <span class="era-sheet__tick" data-bilingual-es={chapter.railTickEs} data-bilingual-en={chapter.railTickEn}>{chapter.railTickEs}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   </div>
-  <button type="button" class="era-mobile__btn" data-rail-next aria-label="Next section">
-    <svg class="era-mobile__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M10 7l5 5-5 5"></path>
-    </svg>
-  </button>
-</nav>
+</div>

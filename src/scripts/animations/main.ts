@@ -65,19 +65,25 @@ export function initAnimations(opts: AnimOpts = {}) {
         return;
       }
 
-      const lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-      });
-      lenis.on('scroll', ScrollTrigger.update);
-      const tickerCb = (time: number) => lenis.raf(time * 1000);
-      gsap.ticker.add(tickerCb);
-      gsap.ticker.lagSmoothing(0);
-      cleanupFns.push(() => {
-        gsap.ticker.remove(tickerCb);
-        lenis.destroy();
-      });
+      const isTouch = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 1024;
+      let lenis: Lenis | null = null;
+
+      if (!isTouch) {
+        lenis = new Lenis({
+          duration: 0.9,
+          easing: (t) => 1 - Math.pow(1 - t, 3),
+          smoothWheel: true,
+          wheelMultiplier: 1,
+        });
+        lenis.on('scroll', ScrollTrigger.update);
+        const tickerCb = (time: number) => lenis!.raf(time * 1000);
+        gsap.ticker.add(tickerCb);
+        cleanupFns.push(() => {
+          gsap.ticker.remove(tickerCb);
+          lenis?.destroy();
+          lenis = null;
+        });
+      }
 
       const hero = document.querySelector<HTMLElement>('.hero');
       if (hero) {
