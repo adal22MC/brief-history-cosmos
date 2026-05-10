@@ -231,6 +231,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uTintB: { value: new Color(0x005a6b) },
       uIntensity: { value: 0.7 },
       uFlash: { value: 0 },
+      uFlow: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vPos;
@@ -272,11 +273,19 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uniform vec3 uTintB;
       uniform float uIntensity;
       uniform float uFlash;
+      uniform float uFlow;
 
       void main() {
         vec3 dir = normalize(vPos);
         float lat = dir.y;
-        float bands = fbm(dir * 1.5 + vec3(uTime * 0.04, 0.0, uTime * 0.02));
+        // uFlow desplaza el ruido en una dirección preferente (corriente),
+        // dando sensación orgánica de "flujo" en eras como biotic.
+        vec3 flowOffset = vec3(
+          uTime * (0.04 + uFlow * 0.12),
+          uFlow * uTime * 0.08,
+          uTime * 0.02
+        );
+        float bands = fbm(dir * 1.5 + flowOffset);
         float curtain = smoothstep(0.35, 0.85, bands - lat * 0.4);
 
         vec3 deep = vec3(0.015, 0.018, 0.045);
@@ -370,6 +379,85 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   const points = new Points(pGeo, pMat);
   scene.add(points);
 
+  // ───────── Polvo cercano: nube protoplanetaria sutil que solo se enciende en
+  // eras donde tiene sentido narrativo. Distribuida alrededor del origen local;
+  // en tick() trasladamos el grupo a la posición del blob para que la nube siga
+  // al "personaje" sin invadir el texto al cambiar viewport.
+  const dustCount = 160;
+  const dustPos = new Float32Array(dustCount * 3);
+  const dustSizes = new Float32Array(dustCount);
+  const dustPhases = new Float32Array(dustCount);
+  for (let i = 0; i < dustCount; i++) {
+    // Disco achatado en xy alrededor del origen local del Points.
+    const r = 0.3 + Math.random() * 1.9;
+    const theta = Math.random() * Math.PI * 2;
+    dustPos[i * 3 + 0] = Math.cos(theta) * r;
+    dustPos[i * 3 + 1] = Math.sin(theta) * r * 0.5;
+    dustPos[i * 3 + 2] = (Math.random() - 0.5) * 2.8;
+    dustSizes[i] = 0.6 + Math.random() * 1.4;
+    dustPhases[i] = Math.random();
+  }
+  const dustGeo = new BufferGeometry();
+  dustGeo.setAttribute('position', new BufferAttribute(dustPos, 3));
+  dustGeo.setAttribute('aSize', new BufferAttribute(dustSizes, 1));
+  dustGeo.setAttribute('aPhase', new BufferAttribute(dustPhases, 1));
+  const dustMat = new ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    fog: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uDensity: { value: 0 },
+      uTint: { value: new Color('#f5d27a') },
+    },
+    vertexShader: /* glsl */ `
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      uniform float uPixelRatio;
+      varying float vDrift;
+      void main() {
+        vec3 pos = position;
+        // Deriva muy suave en y para sugerir flotación, sin escapar nunca de su zona.
+        pos.y += sin(uTime * 0.18 + aPhase * 6.28318) * 0.18;
+        pos.x += cos(uTime * 0.13 + aPhase * 6.28318) * 0.12;
+        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+        vDrift = 0.55 + 0.45 * (0.5 + 0.5 * sin(uTime * 0.6 + aPhase * 6.28318));
+        gl_PointSize = aSize * uPixelRatio * (160.0 / -mvPos.z) * vDrift;
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uDensity;
+      uniform vec3 uTint;
+      varying float vDrift;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        // Polvo: difuso, sin núcleo duro como las estrellas, opacidad baja para no robar texto.
+        float halo = smoothstep(0.5, 0.0, d) * 0.32;
+        float glow = smoothstep(0.5, 0.18, d) * 0.18;
+        float a = (halo + glow) * vDrift * uDensity;
+        gl_FragColor = vec4(uTint, a);
+      }
+    `,
+  });
+  const dust = new Points(dustGeo, dustMat);
+  scene.add(dust);
+
+  // Densidad de polvo por era: solo planetary la enciende, galactic la insinúa.
+  const DUST_DENSITY: Record<Era, number> = {
+    hot: 0,
+    cooling: 0,
+    stellar: 0,
+    galactic: 0.12,
+    planetary: 0.85,
+    biotic: 0,
+    now: 0,
+  };
+
   const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
   let scrollProgress = 0;
 
@@ -387,7 +475,9 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    pMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+    const pr = Math.min(window.devicePixelRatio, 2);
+    pMat.uniforms.uPixelRatio.value = pr;
+    dustMat.uniforms.uPixelRatio.value = pr;
   });
 
   const clock = new Clock();
@@ -402,6 +492,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     auroraMat.uniforms.uTime.value = t;
     auroraMat.uniforms.uScroll.value = scrollProgress;
     pMat.uniforms.uTime.value = t;
+    dustMat.uniforms.uTime.value = t;
 
     activeObject.rotation.y = t * 0.08 * pose.rotSpeed + mouse.x * 0.14;
     activeObject.rotation.x = mouse.y * 0.08;
@@ -420,6 +511,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       shockwave.position.copy(activeObject.position);
       shockwave.lookAt(camera.position);
     }
+
+    // El polvo sigue al blob para que la nube siempre lo rodee, sin importar
+    // la pose por era ni la compresión de viewport en portrait.
+    dust.position.copy(activeObject.position);
 
     // Parallax del starfield + giro lento de la aurora.
     points.rotation.y = t * 0.015 + mouse.x * 0.025;
@@ -485,6 +580,16 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       duration, ease: 'power2.inOut',
     });
     gsap.to(auroraMat.uniforms.uIntensity, { value: p.auroraIntensity, duration, ease: 'power2.inOut' });
+    // Aurora flow: corriente direccional fuerte en biotic ("química inquieta").
+    const flowTarget = era === 'biotic' ? 1.0 : era === 'galactic' ? 0.35 : 0;
+    gsap.to(auroraMat.uniforms.uFlow, { value: flowTarget, duration, ease: 'power2.inOut' });
+
+    // Polvo cercano: visible solo en planetary, sutil en galactic.
+    gsap.to(dustMat.uniforms.uDensity, {
+      value: DUST_DENSITY[era],
+      duration,
+      ease: 'power2.inOut',
+    });
 
     gsap.to(pMat.uniforms.uDensity, { value: p.starDensity, duration, ease: 'power2.inOut' });
     gsap.to(pMat.uniforms.uTwinkle, { value: p.starTwinkle, duration, ease: 'power2.inOut' });
@@ -526,8 +631,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         gsap.killTweensOf(u);
         u.value = 0;
         const tl = gsap.timeline();
-        tl.to(u, { value: 2.5, duration: 0.45, ease: 'power2.out' })
-          .to(u, { value: 1.8, duration: 0.35, ease: 'sine.inOut' })
+        tl.to(u, { value: 1.4, duration: 0.45, ease: 'power2.out' })
+          .to(u, { value: 0.9, duration: 0.35, ease: 'sine.inOut' })
           .to(u, { value: 0, duration: 1.4, ease: 'power3.out' });
       });
     }
