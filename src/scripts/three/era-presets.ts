@@ -13,9 +13,16 @@ interface EraPreset {
   blobTimeScale: number;
   blobNoiseFreq: number;
   blobIntensity: number;
+  blobX: number;
+  blobY: number;
+  blobScale: number;
+  blobRotSpeed: number;
   auroraA: string;
   auroraB: string;
   auroraIntensity: number;
+  starDensity: number;
+  starTwinkle: number;
+  starBrightness: number;
 }
 
 export const ERA_PRESETS: Record<Era, EraPreset> = {
@@ -25,19 +32,33 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 3.2,
     blobNoiseFreq: 1.7,
     blobIntensity: 1.7,
+    blobX: 1.5,
+    blobY: 0.0,
+    blobScale: 1.6,
+    blobRotSpeed: 1.4,
     auroraA: '#48090a',
     auroraB: '#c83a14',
     auroraIntensity: 1.0,
+    starDensity: 0.0,
+    starTwinkle: 1.0,
+    starBrightness: 0.0,
   },
   cooling: {
-    blobA: '#f5c890',
-    blobB: '#a86028',
+    blobA: '#ffe2b8',
+    blobB: '#d88248',
     blobTimeScale: 1.4,
     blobNoiseFreq: 1.1,
-    blobIntensity: 1.05,
-    auroraA: '#1f0c05',
-    auroraB: '#5a3a14',
-    auroraIntensity: 0.6,
+    blobIntensity: 1.3,
+    blobX: 2.2,
+    blobY: -0.4,
+    blobScale: 1.0,
+    blobRotSpeed: 1.0,
+    auroraA: '#3a1a08',
+    auroraB: '#c87a2e',
+    auroraIntensity: 1.3,
+    starDensity: 0.18,
+    starTwinkle: 0.55,
+    starBrightness: 0.55,
   },
   stellar: {
     blobA: '#a8c2f0',
@@ -45,9 +66,16 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 1.0,
     blobNoiseFreq: 0.9,
     blobIntensity: 0.95,
+    blobX: 2.6,
+    blobY: 0.7,
+    blobScale: 0.75,
+    blobRotSpeed: 0.7,
     auroraA: '#0a1233',
     auroraB: '#1e4a8e',
     auroraIntensity: 0.8,
+    starDensity: 1.0,
+    starTwinkle: 1.9,
+    starBrightness: 1.4,
   },
   galactic: {
     blobA: '#c8a0ff',
@@ -55,9 +83,16 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 0.6,
     blobNoiseFreq: 0.7,
     blobIntensity: 0.9,
+    blobX: 2.0,
+    blobY: 0.2,
+    blobScale: 1.05,
+    blobRotSpeed: 2.4,
     auroraA: '#240a45',
     auroraB: '#7026a8',
     auroraIntensity: 0.85,
+    starDensity: 0.95,
+    starTwinkle: 1.0,
+    starBrightness: 1.0,
   },
   planetary: {
     blobA: '#f5d27a',
@@ -65,9 +100,16 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 0.4,
     blobNoiseFreq: 0.5,
     blobIntensity: 0.7,
+    blobX: 3.0,
+    blobY: -0.8,
+    blobScale: 0.55,
+    blobRotSpeed: 0.4,
     auroraA: '#1a0a04',
     auroraB: '#5a3010',
     auroraIntensity: 0.55,
+    starDensity: 0.7,
+    starTwinkle: 0.75,
+    starBrightness: 0.9,
   },
   biotic: {
     blobA: '#88e0d3',
@@ -75,9 +117,16 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 0.5,
     blobNoiseFreq: 0.7,
     blobIntensity: 0.7,
+    blobX: 2.4,
+    blobY: 0.4,
+    blobScale: 0.7,
+    blobRotSpeed: 0.6,
     auroraA: '#04141a',
     auroraB: '#0e5a6b',
     auroraIntensity: 0.6,
+    starDensity: 0.85,
+    starTwinkle: 0.9,
+    starBrightness: 0.95,
   },
   now: {
     blobA: '#c2a2ff',
@@ -85,9 +134,16 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobTimeScale: 1.0,
     blobNoiseFreq: 0.9,
     blobIntensity: 1.0,
+    blobX: 3.2,
+    blobY: -1.2,
+    blobScale: 0.45,
+    blobRotSpeed: 1.0,
     auroraA: '#2e0a52',
     auroraB: '#005a6b',
     auroraIntensity: 0.7,
+    starDensity: 1.0,
+    starTwinkle: 1.0,
+    starBrightness: 1.0,
   },
 };
 

@@ -58,6 +58,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uTimeScale: { value: 1.0 },
       uNoiseFreq: { value: 0.9 },
       uIntensity: { value: 1.0 },
+      uFlash: { value: 0 },
     },
     vertexShader: /* glsl */ `
       uniform float uTime;
@@ -152,6 +153,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       varying vec3 vNormal;
       varying float vDistort;
 
+      uniform float uFlash;
+
       void main() {
         float shell = smoothstep(-0.18, 0.18, vDistort);
         float radial = smoothstep(1.2, 0.15, length(vPosition.xy));
@@ -162,13 +165,23 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         vec3 core = mix(uColorA, vec3(1.0), radial) * radial * 0.25;
         vec3 color = base + corona + core;
 
+        // Photon decoupling flash: el blob también irradia luz cálida en el desacople.
+        color += vec3(1.0, 0.9, 0.7) * uFlash * (0.4 + radial * 0.6);
         gl_FragColor = vec4(color, 1.0);
       }
     `,
   });
 
   const blob = new Mesh(geometry, material);
-  blob.position.set(2.2, -0.6, 0); // off-center, abajo a la derecha
+  // Pose tweenable por era — el blob se "actúa" como personaje a lo largo del scroll.
+  const pose = {
+    x: ERA_PRESETS.hot.blobX,
+    y: ERA_PRESETS.hot.blobY,
+    scale: ERA_PRESETS.hot.blobScale,
+    rotSpeed: ERA_PRESETS.hot.blobRotSpeed,
+  };
+  blob.position.set(pose.x, pose.y, 0);
+  blob.scale.setScalar(pose.scale);
 
   const ringGroup = new Group();
   const ringGeo = new TorusGeometry(1.55, 0.008, 8, 180);
@@ -189,6 +202,22 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   blob.add(ringGroup);
   scene.add(blob);
 
+  // Shockwave: anillo aditivo que se expande desde el blob al cambiar de era,
+  // marcando el "evento" del cambio en vez del crossfade silencioso.
+  const shockGeo = new TorusGeometry(1.0, 0.025, 10, 96);
+  const shockMat = new MeshBasicMaterial({
+    color: '#ffffff',
+    transparent: true,
+    opacity: 0,
+    blending: AdditiveBlending,
+    depthWrite: false,
+    fog: false,
+  });
+  const shockwave = new Mesh(shockGeo, shockMat);
+  shockwave.scale.setScalar(0.001);
+  shockwave.visible = false;
+  scene.add(shockwave);
+
   // ───────── Aurora skybox: envuelve la cámara con un campo de color animado.
   const auroraGeo = new SphereGeometry(60, 32, 32);
   const auroraMat = new ShaderMaterial({
@@ -201,6 +230,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uTintA: { value: new Color(0x2e0a52) },
       uTintB: { value: new Color(0x005a6b) },
       uIntensity: { value: 0.7 },
+      uFlash: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vPos;
@@ -241,6 +271,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uniform vec3 uTintA;
       uniform vec3 uTintB;
       uniform float uIntensity;
+      uniform float uFlash;
 
       void main() {
         vec3 dir = normalize(vPos);
@@ -253,6 +284,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         vec3 color = mix(deep, hue, curtain * uIntensity);
 
         color *= smoothstep(-0.9, 0.4, lat + 0.3);
+
+        // Photon decoupling flash: pulso global cálido al volverse el universo transparente.
+        vec3 flashTone = vec3(1.0, 0.88, 0.62);
+        color += flashTone * uFlash * (0.7 + curtain * 0.6);
         gl_FragColor = vec4(color, 1.0);
       }
     `,
@@ -297,21 +332,28 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     uniforms: {
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      // Inicia en estado "hot" (Big Bang): sin estrellas — el plasma aún no es transparente.
+      uDensity: { value: ERA_PRESETS.hot.starDensity },
+      uTwinkle: { value: ERA_PRESETS.hot.starTwinkle },
+      uBrightness: { value: ERA_PRESETS.hot.starBrightness },
     },
     vertexShader: /* glsl */ `
       attribute float aSize;
       attribute float aPhase;
       uniform float uTime;
       uniform float uPixelRatio;
+      uniform float uTwinkle;
       varying float vTwinkle;
       void main() {
         vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-        vTwinkle = 0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * 1.6 + aPhase * 6.28318));
+        vTwinkle = 0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * 1.6 * uTwinkle + aPhase * 6.28318));
         gl_PointSize = aSize * uPixelRatio * (180.0 / -mvPos.z) * vTwinkle;
         gl_Position = projectionMatrix * mvPos;
       }
     `,
     fragmentShader: /* glsl */ `
+      uniform float uDensity;
+      uniform float uBrightness;
       varying float vTwinkle;
       void main() {
         vec2 c = gl_PointCoord - 0.5;
@@ -319,8 +361,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         // Núcleo brillante + halo suave.
         float core = smoothstep(0.5, 0.0, d);
         float halo = smoothstep(0.5, 0.15, d) * 0.4;
-        float a = (core + halo) * vTwinkle;
-        vec3 col = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.95, 0.85), vTwinkle);
+        float a = (core + halo) * vTwinkle * uDensity;
+        vec3 col = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.95, 0.85), vTwinkle) * uBrightness;
         gl_FragColor = vec4(col, a);
       }
     `,
@@ -361,12 +403,23 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     auroraMat.uniforms.uScroll.value = scrollProgress;
     pMat.uniforms.uTime.value = t;
 
-    activeObject.rotation.y = t * 0.08 + mouse.x * 0.14;
+    activeObject.rotation.y = t * 0.08 * pose.rotSpeed + mouse.x * 0.14;
     activeObject.rotation.x = mouse.y * 0.08;
-    // Posición base off-center + leve parallax del cursor.
-    activeObject.position.x = 2.2 + mouse.x * 0.16;
-    activeObject.position.y = -0.6 + mouse.y * 0.1;
-    activeObject.scale.setScalar(1 - scrollProgress * 0.08);
+    // Pose por era + leve parallax del cursor.
+    // En portrait/narrow comprimimos x y bajamos un punto la escala para que el blob
+    // siga siendo legible sin invadir el texto ni quedarse fuera del viewport.
+    const aspect = window.innerWidth / window.innerHeight;
+    const xFactor = Math.min(1, aspect / 1.4);
+    const scaleFactor = 0.7 + 0.3 * xFactor;
+    activeObject.position.x = pose.x * xFactor + mouse.x * 0.16;
+    activeObject.position.y = pose.y + mouse.y * 0.1;
+    activeObject.scale.setScalar(pose.scale * scaleFactor);
+
+    // Shockwave sigue al blob y mira a la cámara (billboard) — siempre se ve plano.
+    if (shockwave.visible) {
+      shockwave.position.copy(activeObject.position);
+      shockwave.lookAt(camera.position);
+    }
 
     // Parallax del starfield + giro lento de la aurora.
     points.rotation.y = t * 0.015 + mouse.x * 0.025;
@@ -386,8 +439,11 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   tick();
 
   // setEra: tweenea uniforms del blob y de la aurora hacia el preset deseado.
+  let lastEra: Era | null = null;
   const setEra = (era: Era, duration = 1.4) => {
     const p = ERA_PRESETS[era];
+    const isTransition = lastEra !== null && lastEra !== era;
+    lastEra = era;
     gsap.to(material.uniforms.uColorA.value, {
       r: new Color(p.blobA).r,
       g: new Color(p.blobA).g,
@@ -429,6 +485,52 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       duration, ease: 'power2.inOut',
     });
     gsap.to(auroraMat.uniforms.uIntensity, { value: p.auroraIntensity, duration, ease: 'power2.inOut' });
+
+    gsap.to(pMat.uniforms.uDensity, { value: p.starDensity, duration, ease: 'power2.inOut' });
+    gsap.to(pMat.uniforms.uTwinkle, { value: p.starTwinkle, duration, ease: 'power2.inOut' });
+    gsap.to(pMat.uniforms.uBrightness, { value: p.starBrightness, duration, ease: 'power2.inOut' });
+
+    gsap.to(pose, {
+      x: p.blobX,
+      y: p.blobY,
+      scale: p.blobScale,
+      rotSpeed: p.blobRotSpeed,
+      duration,
+      ease: 'power2.inOut',
+    });
+
+    // Shockwave: anillo aditivo que irradia desde el blob, tinted con el color de la era entrante.
+    if (isTransition) {
+      gsap.killTweensOf(shockwave.scale);
+      gsap.killTweensOf(shockMat);
+      shockMat.color.set(new Color(p.blobA));
+      shockwave.scale.setScalar(0.001);
+      shockMat.opacity = 0;
+      shockwave.visible = true;
+      gsap
+        .timeline({
+          onComplete: () => {
+            shockwave.visible = false;
+          },
+        })
+        .to(shockMat, { opacity: 0.85, duration: 0.18, ease: 'power2.out' }, 0)
+        .to(shockwave.scale, { x: 7, y: 7, z: 7, duration: 1.2, ease: 'power3.out' }, 0)
+        .to(shockMat, { opacity: 0, duration: 1.0, ease: 'power2.in' }, 0.2);
+    }
+
+    // Photon decoupling: al entrar a "cooling" disparamos un flash cálido global
+    // que afecta tanto al cielo como al blob — narra el momento en que la luz por fin viaja.
+    if (era === 'cooling') {
+      const flashTargets = [auroraMat.uniforms.uFlash, material.uniforms.uFlash];
+      flashTargets.forEach((u) => {
+        gsap.killTweensOf(u);
+        u.value = 0;
+        const tl = gsap.timeline();
+        tl.to(u, { value: 2.5, duration: 0.45, ease: 'power2.out' })
+          .to(u, { value: 1.8, duration: 0.35, ease: 'sine.inOut' })
+          .to(u, { value: 0, duration: 1.4, ease: 'power3.out' });
+      });
+    }
   };
 
   return { setEra };
