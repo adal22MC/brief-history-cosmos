@@ -6,6 +6,7 @@ declare global {
   interface Window {
     __sceneApi?: SceneAPI | null;
     __cosmosPageLoadBound?: boolean;
+    __cosmosLangSwapBound?: boolean;
     __cosmosAnimationsCleanup?: () => void;
     __cosmosSectionIndexLabelHandler?: () => void;
   }

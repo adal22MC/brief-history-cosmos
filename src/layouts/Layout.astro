@@ -111,14 +111,32 @@ const jsonLd = {
     </script>
     <ClientRouter />
     <script is:inline>
-      // Aplicar idioma guardado lo más pronto posible para evitar parpadeo.
+      // Idioma: localStorage gana sobre el HTML del SSR. Tras View Transitions el
+      // documento nuevo vuelve a traer data-lang="es"; hay que re-aplicar la preferencia.
       (function () {
-        try {
-          const saved = localStorage.getItem('lang');
-          const initial = saved ?? (navigator.language?.startsWith('en') ? 'en' : 'es');
-          document.documentElement.setAttribute('lang', initial);
-          document.documentElement.setAttribute('data-lang', initial);
-        } catch {}
+        function applySavedLang() {
+          try {
+            const saved = localStorage.getItem('lang');
+            const next =
+              saved === 'en' || saved === 'es'
+                ? saved
+                : navigator.language?.startsWith('en')
+                  ? 'en'
+                  : 'es';
+            const cur = document.documentElement.getAttribute('data-lang');
+            if (cur === next) return;
+            document.documentElement.setAttribute('lang', next);
+            document.documentElement.setAttribute('data-lang', next);
+            document.dispatchEvent(
+              new CustomEvent('cosmos:language-change', { detail: { lang: next } }),
+            );
+          } catch {}
+        }
+        applySavedLang();
+        if (!window.__cosmosLangSwapBound) {
+          window.__cosmosLangSwapBound = true;
+          document.addEventListener('astro:after-swap', applySavedLang);
+        }
       })();
     </script>
     <script>
