@@ -35,8 +35,8 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
 
   const sections = gsap.utils.toArray<HTMLElement>('[data-rail-section]');
   const railLinks = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-target]:not([data-rail-mobile-item])');
-  const sheetItems = gsap.utils.toArray<HTMLButtonElement>('[data-rail-mobile-item]');
-  const links = [...railLinks, ...sheetItems] as Array<HTMLAnchorElement | HTMLButtonElement>;
+  const sheetItems = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-mobile-item]');
+  const links = [...railLinks, ...sheetItems];
   const sourceLink = document.querySelector<HTMLAnchorElement>('[data-rail-source]');
   const mobileTrigger = document.querySelector<HTMLButtonElement>('[data-rail-mobile-trigger]');
   const mobileSheet = document.querySelector<HTMLElement>('[data-rail-mobile-sheet]');
@@ -178,7 +178,7 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     onCleanup(() => target.removeEventListener(type, handler as EventListener));
   };
 
-  links.forEach((link, index) => {
+  links.forEach((link) => {
     listen<MouseEvent>(link, 'click', (event) => {
       const targetId = link.dataset.railTarget;
       const targetIndex = sections.findIndex((sec) => sec.id === targetId);
@@ -188,9 +188,6 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
       scrollToSection(targetIndex);
       if (wasOpen) setSheetOpen(false);
     });
-    if (!link.hasAttribute('aria-label')) {
-      link.setAttribute('aria-label', `Go to section ${String(index + 1).padStart(2, '0')}`);
-    }
   });
 
   if (mobileTrigger) {
@@ -262,6 +259,10 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     sourceLink.setAttribute('aria-current', location.pathname.startsWith('/work') ? 'page' : 'false');
   }
 
-  requestAnimationFrame(syncToViewport);
-  window.setTimeout(syncToViewport, 120);
+  const syncFrame = requestAnimationFrame(syncToViewport);
+  const syncTimer = window.setTimeout(syncToViewport, 120);
+  onCleanup(() => {
+    cancelAnimationFrame(syncFrame);
+    window.clearTimeout(syncTimer);
+  });
 }

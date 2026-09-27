@@ -27,6 +27,7 @@ export interface SceneAPI {
 }
 
 export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const scene = new Scene();
   scene.fog = new FogExp2(0x05050a, 0.025);
 
@@ -536,6 +537,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   // setEra: tweenea uniforms del blob y de la aurora hacia el preset deseado.
   let lastEra: Era | null = null;
   const setEra = (era: Era, duration = 1.4) => {
+    if (reducedMotion.matches) duration = 0;
     const p = ERA_PRESETS[era];
     const isTransition = lastEra !== null && lastEra !== era;
     lastEra = era;
@@ -605,7 +607,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     });
 
     // Shockwave: anillo aditivo que irradia desde el blob, tinted con el color de la era entrante.
-    if (isTransition) {
+    if (isTransition && !reducedMotion.matches) {
       gsap.killTweensOf(shockwave.scale);
       gsap.killTweensOf(shockMat);
       shockMat.color.set(new Color(p.blobA));
@@ -618,21 +620,21 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
             shockwave.visible = false;
           },
         })
-        .to(shockMat, { opacity: 0.85, duration: 0.18, ease: 'power2.out' }, 0)
+        .to(shockMat, { opacity: 0.3, duration: 0.35, ease: 'power2.out' }, 0)
         .to(shockwave.scale, { x: 7, y: 7, z: 7, duration: 1.2, ease: 'power3.out' }, 0)
         .to(shockMat, { opacity: 0, duration: 1.0, ease: 'power2.in' }, 0.2);
     }
 
     // Photon decoupling: al entrar a "cooling" disparamos un flash cálido global
     // que afecta tanto al cielo como al blob — narra el momento en que la luz por fin viaja.
-    if (era === 'cooling') {
+    if (era === 'cooling' && isTransition && !reducedMotion.matches) {
       const flashTargets = [auroraMat.uniforms.uFlash, material.uniforms.uFlash];
       flashTargets.forEach((u) => {
         gsap.killTweensOf(u);
         u.value = 0;
         const tl = gsap.timeline();
-        tl.to(u, { value: 1.4, duration: 0.45, ease: 'power2.out' })
-          .to(u, { value: 0.9, duration: 0.35, ease: 'sine.inOut' })
+        tl.to(u, { value: 0.16, duration: 0.65, ease: 'sine.inOut' })
+          .to(u, { value: 0.08, duration: 0.45, ease: 'sine.inOut' })
           .to(u, { value: 0, duration: 1.4, ease: 'power3.out' });
       });
     }

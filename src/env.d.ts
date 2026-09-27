@@ -8,7 +8,6 @@ declare global {
     __cosmosPageLoadBound?: boolean;
     __cosmosLangSwapBound?: boolean;
     __cosmosAnimationsCleanup?: () => void;
-    __cosmosSectionIndexLabelHandler?: () => void;
   }
 }
 

@@ -1,6 +1,8 @@
 ---
 import type { ChapterMeta } from '@/content/timeline';
 import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import { CHAPTERS } from '@/content/timeline';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
 
 interface Props {
   chapter: ChapterMeta;
@@ -12,6 +14,7 @@ const { chapter, totalChapters, variant = 'default' } = Astro.props;
 
 const paddedTotal = String(totalChapters).padStart(2, '0');
 const chapterNumLabel = `${chapter.railNum} / ${paddedTotal}`;
+const nextChapter = CHAPTERS[CHAPTERS.findIndex(({ id }) => id === chapter.id) + 1];
 
 const sectionClass = [
   'section',
@@ -38,27 +41,31 @@ const innerClass = [
   data-section-label-en={chapter.sectionLabelEn}
   data-era={chapter.era}
   data-rail-section
+  style={`--chapter-accent: ${ERA_ACCENTS[chapter.era]}`}
 >
+  <span class="chapter__watermark" aria-hidden="true">{chapter.railNum}</span>
   <div class={innerClass}>
-    <span class="chapter__num">{chapterNumLabel}</span>
-    <span class="tag">
-      <BilingualSpan es={chapter.sectionLabelEs} en={chapter.sectionLabelEn} />
-    </span>
+    <div class="chapter__eyebrow">
+      <span class="chapter__num">{chapterNumLabel}</span>
+      <span class="tag">
+        <BilingualSpan es={chapter.sectionLabelEs} en={chapter.sectionLabelEn} />
+      </span>
+    </div>
     {
       variant === 'hero' ? (
         <h1>
           <slot name="heading" />
         </h1>
       ) : (
-        <h2 class="reveal">
+        <h2>
           <slot name="heading" />
         </h2>
       )
     }
-    <p class:list={['lede', { reveal: variant !== 'hero' }]}>
+    <p class="lede">
       <slot name="lede" />
     </p>
-    <p class:list={['chapter__note', { reveal: variant !== 'hero' }]}>
+    <p class="chapter__note">
       <slot name="note" />
     </p>
     {
@@ -69,5 +76,15 @@ const innerClass = [
       )
     }
     <slot name="extra" />
+    {nextChapter && (
+      <a class="chapter__next" href={`#${nextChapter.id}`} data-chapter-target={nextChapter.id}>
+        <span class="chapter__next-icon" aria-hidden="true">↓</span>
+        <span>
+          <span class="chapter__next-label"><BilingualSpan es={variant === 'hero' ? 'Comenzar el viaje' : 'Siguiente capítulo'} en={variant === 'hero' ? 'Begin the journey' : 'Next chapter'} /></span>
+          <span class="chapter__next-title"><BilingualSpan es={nextChapter.sectionLabelEs} en={nextChapter.sectionLabelEn} /></span>
+        </span>
+      </a>
+    )}
   </div>
+  {variant === 'hero' && <div class="hero__colophon" aria-hidden="true"><BilingualSpan es="Del primer instante al cielo de hoy" en="From the first instant to today's sky" /><span>13.8 × 10⁹ <BilingualSpan es="años de historia" en="years of history" /></span></div>}
 </section>

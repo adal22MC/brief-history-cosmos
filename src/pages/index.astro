@@ -18,11 +18,8 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
 >
   <main id="main">
     <ChapterSection chapter={CHAPTERS[0]} totalChapters={CHAPTER_COUNT} variant="hero">
-      <BilingualSpan
-        slot="heading"
-        es="Una breve historia del cosmos"
-        en="A brief history of the cosmos"
-      />
+      <span slot="heading" data-es><span class="hero__line">Una breve</span><span class="hero__line">historia del</span><span class="hero__line hero__line--serif">cosmos.</span></span>
+      <span slot="heading" data-en><span class="hero__line">A brief</span><span class="hero__line">history of the</span><span class="hero__line hero__line--serif">cosmos.</span></span>
       <BilingualSpan
         slot="lede"
         es="El universo cabía en un punto. Luego dejó de caber."

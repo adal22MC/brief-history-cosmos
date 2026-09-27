@@ -6,6 +6,7 @@ import { initLanguageToggle } from './language-toggle';
 import { initProgressBar, initSectionIndex, initEraDriver } from './progress-era';
 import { initEraRail, type CleanupFn } from './era-rail';
 import { initLiveData } from './live-data';
+import { initChapterMotion } from './chapter-motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,32 +16,32 @@ interface AnimOpts {
 
 export function initAnimations(opts: AnimOpts = {}) {
   window.__cosmosAnimationsCleanup?.();
-
   const cleanupFns: CleanupFn[] = [];
+  let disposed = false;
+  const mm = gsap.matchMedia();
+
   window.__cosmosAnimationsCleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    mm.revert();
     cleanupFns.splice(0).forEach((cleanup) => cleanup());
-    document.querySelector<HTMLElement>('[data-era-rail]')?.removeAttribute('data-booted');
     document.body.removeAttribute('data-anims-init');
   };
   document.body.dataset.animsInit = '1';
-
   initLanguageToggle();
+  cleanupFns.push(initLiveData(opts.sceneApi ?? null));
 
-  const mm = gsap.matchMedia();
-  cleanupFns.push(() => {
-    mm.revert();
-    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-  });
-  const refreshOnVisible = () => {
-    if (document.visibilityState === 'visible') {
-      ScrollTrigger.refresh();
-    }
+  const refresh = () => {
+    if (!disposed && document.visibilityState === 'visible') ScrollTrigger.refresh();
   };
-  document.addEventListener('visibilitychange', refreshOnVisible);
-  window.addEventListener('pageshow', refreshOnVisible);
+  document.addEventListener('visibilitychange', refresh);
+  document.addEventListener('cosmos:language-change', refresh);
+  window.addEventListener('pageshow', refresh);
+  void document.fonts.ready.then(refresh);
   cleanupFns.push(() => {
-    document.removeEventListener('visibilitychange', refreshOnVisible);
-    window.removeEventListener('pageshow', refreshOnVisible);
+    document.removeEventListener('visibilitychange', refresh);
+    document.removeEventListener('cosmos:language-change', refresh);
+    window.removeEventListener('pageshow', refresh);
   });
 
   mm.add(
@@ -49,105 +50,48 @@ export function initAnimations(opts: AnimOpts = {}) {
       isReduced: '(prefers-reduced-motion: reduce)',
     },
     (context) => {
-      const { isReduced } = context.conditions as {
-        isMotion: boolean;
-        isReduced: boolean;
-      };
+      const { isReduced } = context.conditions as { isReduced: boolean };
+      const motionCleanup: CleanupFn[] = [];
+      let lenis: Lenis | null = null;
 
-      if (isReduced) {
-        gsap.set('.hero h1, .hero .tag, .hero .lede, .hero .chapter__note, .reveal', { opacity: 1, y: 0 });
-        gsap.set('.hero .chapter__stats', { opacity: 1, y: 0 });
-        initProgressBar();
-        initSectionIndex();
-        initEraDriver(opts.sceneApi ?? null);
-        initEraRail({ lenis: null, isReduced: true, onCleanup: (cleanup) => cleanupFns.push(cleanup) });
-        cleanupFns.push(initLiveData(opts.sceneApi ?? null));
-        return;
-      }
-
-      let lenis: Lenis | null = new Lenis({
-        duration: 0.7,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-        smoothWheel: true,
-        syncTouch: true,
-        wheelMultiplier: 1,
-        touchMultiplier: 1,
-      });
-      lenis.on('scroll', ScrollTrigger.update);
-      const tickerCb = (time: number) => lenis!.raf(time * 1000);
-      gsap.ticker.add(tickerCb);
-      cleanupFns.push(() => {
-        gsap.ticker.remove(tickerCb);
-        lenis?.destroy();
-        lenis = null;
-      });
-
-      const hero = document.querySelector<HTMLElement>('.hero');
-      if (hero) {
-        const tl = gsap.timeline({ delay: 0.2 });
-        const heroTitle = hero.querySelector<HTMLElement>('h1');
-        const heroTag = hero.querySelector<HTMLElement>('.tag');
-        const heroLede = hero.querySelector<HTMLElement>('.lede');
-        const heroNote = hero.querySelector<HTMLElement>('.chapter__note');
-        const heroStats = hero.querySelector<HTMLElement>('.chapter__stats');
-
-        if (heroTitle) {
-          tl.fromTo(
-            heroTitle,
-            { y: 60, opacity: 0 },
-            { y: 0, opacity: 1, duration: 1.1, ease: 'power4.out' },
-          );
-        }
-        if (heroTag) tl.to(heroTag, { opacity: 1, duration: 0.6 }, '-=0.8');
-        if (heroLede) tl.to(heroLede, { opacity: 1, duration: 0.8 }, '-=0.6');
-        if (heroNote) tl.to(heroNote, { opacity: 0.78, y: 0, duration: 0.8 }, '-=0.55');
-        if (heroStats) tl.to(heroStats, { opacity: 1, y: 0, duration: 0.8 }, '-=0.5');
-      }
-
-      gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) => {
-        gsap.to(el, {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 80%',
-            toggleActions: 'play none none reverse',
-          },
+      if (!isReduced) {
+        lenis = new Lenis({
+          duration: 0.85,
+          easing: (t) => 1 - Math.pow(1 - t, 3),
+          smoothWheel: true,
+          syncTouch: false,
+          wheelMultiplier: 1,
         });
-      });
-
-      gsap.utils.toArray<HTMLElement>('.chapter:not(.hero)').forEach((chapter) => {
-        const targets = chapter.querySelectorAll<HTMLElement>(
-          '.chapter__num, .tag, h2, .lede, .chapter__stats > div',
-        );
-        if (!targets.length) return;
-        gsap.fromTo(
-          targets,
-          { y: 30, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.9,
-            ease: 'power3.out',
-            stagger: 0.08,
-            scrollTrigger: {
-              trigger: chapter,
-              start: 'top 70%',
-              toggleActions: 'play none none reverse',
-            },
-          },
-        );
-      });
+        lenis.on('scroll', ScrollTrigger.update);
+        const tickerCb = (time: number) => lenis?.raf(time * 1000);
+        gsap.ticker.add(tickerCb);
+        motionCleanup.push(() => {
+          gsap.ticker.remove(tickerCb);
+          lenis?.destroy();
+          lenis = null;
+        });
+        initChapterMotion();
+      }
 
       initProgressBar();
-      initSectionIndex();
+      motionCleanup.push(initSectionIndex(isReduced));
       initEraDriver(opts.sceneApi ?? null);
-      initEraRail({ lenis, isReduced: false, onCleanup: (cleanup) => cleanupFns.push(cleanup) });
-      cleanupFns.push(initLiveData(opts.sceneApi ?? null));
+      initEraRail({ lenis, isReduced, onCleanup: (cleanup) => motionCleanup.push(cleanup) });
 
-      return () => {};
+      document.querySelectorAll<HTMLAnchorElement>('[data-chapter-target]').forEach((link) => {
+        const onClick = (event: MouseEvent) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          const target = document.getElementById(link.dataset.chapterTarget ?? '');
+          if (!target) return;
+          event.preventDefault();
+          if (lenis) lenis.scrollTo(target, { duration: 1.1 });
+          else target.scrollIntoView({ behavior: 'instant', block: 'start' });
+        };
+        link.addEventListener('click', onClick);
+        motionCleanup.push(() => link.removeEventListener('click', onClick));
+      });
+
+      return () => motionCleanup.splice(0).forEach((cleanup) => cleanup());
     },
   );
 }

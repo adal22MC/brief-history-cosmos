@@ -29,10 +29,10 @@ export function initEraDriver(sceneApi: SceneAPI | null) {
   });
 }
 
-export function initSectionIndex() {
+export function initSectionIndex(isReduced = false) {
   const numEl = document.querySelector<HTMLElement>('.section-index__num');
   const labelEl = document.querySelector<HTMLElement>('.section-index__label');
-  if (!numEl || !labelEl) return;
+  if (!numEl || !labelEl) return () => {};
 
   const sections = gsap.utils.toArray<HTMLElement>('[data-section-label]');
   let activeSection: HTMLElement | null = null;
@@ -46,11 +46,6 @@ export function initSectionIndex() {
     if (activeSection) labelEl.textContent = getSectionLabel(activeSection);
   };
 
-  const previousLabelHandler = window.__cosmosSectionIndexLabelHandler;
-  if (previousLabelHandler) {
-    document.removeEventListener('cosmos:language-change', previousLabelHandler);
-  }
-  window.__cosmosSectionIndexLabelHandler = updateActiveLabel;
   document.addEventListener('cosmos:language-change', updateActiveLabel);
   sections.forEach((section, i) => {
     const num = String(i + 1).padStart(2, '0');
@@ -63,10 +58,10 @@ export function initSectionIndex() {
           const era = section.dataset.era as Era | undefined;
           const label = getSectionLabel(section);
           activeSection = section;
-          gsap.fromTo(
+          if (!isReduced) gsap.fromTo(
             [numEl, labelEl],
             { yPercent: 30, opacity: 0 },
-            { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.05 },
+            { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.05, overwrite: true },
           );
           numEl.textContent = num;
           labelEl.textContent = label;
@@ -79,4 +74,8 @@ export function initSectionIndex() {
       },
     });
   });
+  return () => {
+    document.removeEventListener('cosmos:language-change', updateActiveLabel);
+    gsap.killTweensOf([numEl, labelEl]);
+  };
 }

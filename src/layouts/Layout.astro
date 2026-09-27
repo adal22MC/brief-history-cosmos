@@ -84,7 +84,7 @@ const jsonLd = {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <title>{title}</title>
@@ -141,25 +141,38 @@ const jsonLd = {
     </script>
     <script>
       import { initAnimations } from '@/scripts/animations';
+      import type { SceneAPI } from '@/scripts/three/scene';
+
+      let scenePromise: Promise<SceneAPI> | undefined;
+      let bootId = 0;
 
       async function bootCosmos() {
+        const currentBoot = ++bootId;
         const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement | null;
         let sceneApi = window.__sceneApi ?? null;
         if (canvas && !canvas.dataset.booted) {
-          const { initThreeScene } = await import('@/scripts/three/scene');
-          sceneApi = initThreeScene(canvas);
-          canvas.dataset.booted = '1';
-          window.__sceneApi = sceneApi;
+          try {
+            scenePromise ??= import('@/scripts/three/scene').then(({ initThreeScene }) => initThreeScene(canvas));
+            sceneApi = await scenePromise;
+            canvas.dataset.booted = '1';
+            window.__sceneApi = sceneApi;
+          } catch (error) {
+            scenePromise = undefined;
+            console.warn('Cosmos background unavailable:', error);
+          }
         }
+        if (currentBoot !== bootId) return;
         initAnimations({ sceneApi });
       }
 
       if (!window.__cosmosPageLoadBound) {
         window.__cosmosPageLoadBound = true;
         document.addEventListener('astro:page-load', bootCosmos);
-        document.addEventListener('DOMContentLoaded', bootCosmos, { once: true });
+        document.addEventListener('astro:before-swap', () => {
+          bootId++;
+          window.__cosmosAnimationsCleanup?.();
+        });
       }
-      if (document.readyState !== 'loading') bootCosmos();
     </script>
   </head>
   <body>
