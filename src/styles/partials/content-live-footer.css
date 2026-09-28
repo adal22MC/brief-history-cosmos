@@ -384,12 +384,10 @@ main { position: relative; z-index: 1; }
 }
 @media (min-width: 901px) {
   .section.hero { min-height: max(100svh, 640px); padding-block: 6.5rem 2.25rem; }
-  .section-index { bottom: 1rem; }
 }
 @media (max-width: 900px), (pointer: coarse) {
-  .era-rail, .section-index { display: none; }
+  .era-rail { display: none; }
   .era-mobile-host { display: contents; }
-  main { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 900px) {
   .section { padding-block: 7.5rem 6rem; }

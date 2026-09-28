@@ -1,31 +1,15 @@
 ---
-import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
+import { CHAPTERS, RAIL_SOURCES } from '@/content/timeline';
 import { ERA_ACCENTS } from '@/scripts/three/era-presets';
 import Icon from '@/components/ui/Icon.astro';
 
-const initialChapter = CHAPTERS[0];
-const initialNum = initialChapter?.railNum ?? '01';
+// Posición de cada capítulo en el año cósmico (0–100 %), para la barra del encabezado.
+const yearPos = (day: number) => `${((day / 365) * 100).toFixed(2)}%`;
+const first = CHAPTERS[0];
 ---
 
+<!-- Hoja de capítulos para pantallas táctiles o angostas; la abre el botón de capítulo del header. -->
 <div class="era-mobile-host" data-era-mobile>
-  <button
-    type="button"
-    class="era-mobile"
-    data-rail-mobile-trigger
-    aria-expanded="false"
-    aria-controls="era-mobile-sheet"
-    aria-label="Open chapter navigation"
-  >
-    <span class="era-mobile__num" data-rail-mobile-status>{initialNum}</span>
-    <span class="era-mobile__divider" aria-hidden="true"></span>
-    <span class="era-mobile__detail" aria-live="polite">
-      <span class="era-mobile__label" data-rail-mobile-label>{initialChapter?.sectionLabelEs ?? ''}</span>
-    </span>
-    <span class="era-mobile__caret" aria-hidden="true">
-      <Icon name="caret-up" size={14} />
-    </span>
-  </button>
-
   <div
     class="era-sheet"
     id="era-mobile-sheet"
@@ -36,13 +20,26 @@ const initialNum = initialChapter?.railNum ?? '01';
     hidden
   >
     <div class="era-sheet__backdrop" data-rail-mobile-backdrop aria-hidden="true"></div>
-    <div class="era-sheet__panel" role="document">
-      <div class="era-sheet__handle" aria-hidden="true"></div>
+    <div class="era-sheet__panel" role="document" data-sheet-panel style={`--sheet-now: ${yearPos(first.calendarDay)}`}>
+      <!-- Dónde estás: el capítulo actual y su fecha en el año cósmico. -->
       <header class="era-sheet__header">
-        <span class="era-sheet__title">
-          <span data-es>Cosmos · {CHAPTER_COUNT} épocas</span>
-          <span data-en>Cosmos · {CHAPTER_COUNT} eras</span>
-        </span>
+        <div class="era-sheet__where">
+          <span
+            class="era-sheet__when"
+            data-sheet-when
+            data-bilingual-es={`Año cósmico · ${first.calendarEs}`}
+            data-bilingual-en={`Cosmic year · ${first.calendarEn}`}
+          >{`Año cósmico · ${first.calendarEs}`}</span>
+          <span class="era-sheet__current">
+            <span class="era-sheet__current-num" data-sheet-num>{first.railNum}</span>
+            <span
+              class="era-sheet__current-label"
+              data-sheet-label
+              data-bilingual-es={first.sectionLabelEs}
+              data-bilingual-en={first.sectionLabelEn}
+            >{first.sectionLabelEs}</span>
+          </span>
+        </div>
         <button
           type="button"
           class="era-sheet__close"
@@ -52,14 +49,33 @@ const initialNum = initialChapter?.railNum ?? '01';
           <Icon name="close" size={18} />
         </button>
       </header>
+
+      <!-- Los 13 800 millones de años como un año: casi toda la historia de este relato cabe en enero. -->
+      <div class="era-sheet__year" aria-hidden="true">
+        <div class="era-sheet__year-track">
+          <span class="era-sheet__year-fill"></span>
+          {CHAPTERS.map((chapter) => (
+            <span class="era-sheet__year-mark" style={`--pos: ${yearPos(chapter.calendarDay)}; --mark: ${ERA_ACCENTS[chapter.era]}`}></span>
+          ))}
+          <span class="era-sheet__year-now"></span>
+        </div>
+        <div class="era-sheet__year-scale">
+          <span data-bilingual-es="1 ene" data-bilingual-en="Jan 1">1 ene</span>
+          <span data-bilingual-es="31 dic" data-bilingual-en="Dec 31">31 dic</span>
+        </div>
+      </div>
+
       <ul class="era-sheet__list" role="list">
         {CHAPTERS.map((chapter, index) => (
-          <li>
+          <li style={`--i: ${index}`}>
             <a
               class="era-sheet__item"
               data-rail-mobile-item
               data-rail-target={chapter.id}
               data-rail-index={index}
+              data-sheet-pos={yearPos(chapter.calendarDay)}
+              data-sheet-when-es={`Año cósmico · ${chapter.calendarEs}`}
+              data-sheet-when-en={`Cosmic year · ${chapter.calendarEn}`}
               href={`/#${chapter.id}`}
               style={`--sheet-color: ${ERA_ACCENTS[chapter.era]}`}
             >
@@ -69,9 +85,28 @@ const initialNum = initialChapter?.railNum ?? '01';
                 <span class="era-sheet__label" data-bilingual-es={chapter.sectionLabelEs} data-bilingual-en={chapter.sectionLabelEn}>{chapter.sectionLabelEs}</span>
                 <span class="era-sheet__tick" data-bilingual-es={chapter.railTickEs} data-bilingual-en={chapter.railTickEn}>{chapter.railTickEs}</span>
               </span>
+              <span class="era-sheet__date" data-bilingual-es={chapter.calendarEs} data-bilingual-en={chapter.calendarEn}>{chapter.calendarEs}</span>
             </a>
           </li>
         ))}
+        <li class="era-sheet__source" style={`--i: ${CHAPTERS.length}`}>
+          <a
+            class="era-sheet__item"
+            data-rail-mobile-item
+            data-rail-target="sources"
+            data-sheet-when-es="Referencias de cada cifra"
+            data-sheet-when-en="References for every figure"
+            href={RAIL_SOURCES.href}
+            style={`--sheet-color: ${ERA_ACCENTS[RAIL_SOURCES.era]}`}
+          >
+            <span class="era-sheet__dot" aria-hidden="true"></span>
+            <span class="era-sheet__num">{RAIL_SOURCES.railNum}</span>
+            <span class="era-sheet__copy">
+              <span class="era-sheet__label" data-bilingual-es={RAIL_SOURCES.labelEs} data-bilingual-en={RAIL_SOURCES.labelEn}>{RAIL_SOURCES.labelEs}</span>
+              <span class="era-sheet__tick" data-bilingual-es={RAIL_SOURCES.tickEs} data-bilingual-en={RAIL_SOURCES.tickEn}>{RAIL_SOURCES.tickEs}</span>
+            </span>
+          </a>
+        </li>
       </ul>
     </div>
   </div>

@@ -42,9 +42,11 @@ const innerClass = [
   data-section-label={chapter.sectionLabelEn}
   data-section-label-es={chapter.sectionLabelEs}
   data-section-label-en={chapter.sectionLabelEn}
+  data-section-num={chapter.railNum}
+  data-section-tick-es={chapter.railTickEs}
+  data-section-tick-en={chapter.railTickEn}
   data-era={chapter.era}
   data-rail-section
-  data-index-hide={variant === 'hero' ? '' : undefined}
   style={`--chapter-accent: ${ERA_ACCENTS[chapter.era]}`}
 >
   <span class="chapter__watermark" aria-hidden="true">{chapter.railNum}</span>

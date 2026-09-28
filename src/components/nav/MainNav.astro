@@ -1,29 +1,49 @@
 ---
 import BrandMark from '@/components/ui/BrandMark.astro';
+import Icon from '@/components/ui/Icon.astro';
 
 const isSources = Astro.url.pathname.startsWith('/work');
 ---
 
-<header class="site-header">
+<header class="site-header" data-site-header>
   <a class="site-brand" href="/" aria-label="Cosmos — Inicio / Home">
     <BrandMark />
     <span>Cosmos<span class="site-brand__edition">7 eras</span></span>
   </a>
-  <span class="site-header__note"><span data-es>Un viaje a través del tiempo</span><span data-en>A journey through time</span></span>
-  <nav class="nav" aria-label="Principal">
-  <a href="/" aria-current={!isSources ? 'page' : undefined}>
-    <span data-es>Inicio</span><span data-en>Home</span>
-  </a>
-  <a href="/work" aria-current={isSources ? 'page' : undefined}>
-    <span data-es>Fuentes</span><span data-en>Sources</span>
-  </a>
+  <!-- Arriba de la página se lee el lema; al compactarse, el capítulo en el que estás. -->
+  <div class="site-header__center">
+    <span class="site-header__note"><span data-es>Un viaje a través del tiempo</span><span data-en>A journey through time</span></span>
+    <span class="site-header__context" aria-hidden="true">
+      <span class="site-header__num" data-header-num></span>
+      <span class="site-header__label" data-header-label></span>
+      <span class="site-header__tick" data-header-tick></span>
+    </span>
+  </div>
+  <!-- En pantallas táctiles o angostas, el capítulo actual abre la hoja con todos los capítulos. -->
   <button
     type="button"
-    class="lang-toggle"
-    data-lang-toggle
-    aria-label="Toggle language"
+    class="site-header__chapters"
+    data-rail-mobile-trigger
+    aria-expanded="false"
+    aria-controls="era-mobile-sheet"
+    aria-haspopup="dialog"
   >
-    <span data-es>EN</span><span data-en>ES</span>
+    <span class="visually-hidden"><span data-es>Capítulos:</span><span data-en>Chapters:</span></span>
+    <span class="site-header__num" data-header-num></span>
+    <span class="site-header__label" data-header-label></span>
+    <span class="site-header__caret" aria-hidden="true"><Icon name="caret-down" size={14} /></span>
   </button>
-</nav>
+  <nav class="nav" aria-label="Principal">
+    <a href="/" aria-current={!isSources ? 'page' : undefined}>
+      <span data-es>Inicio</span><span data-en>Home</span>
+    </a>
+    <a href="/work" aria-current={isSources ? 'page' : undefined}>
+      <span data-es>Fuentes</span><span data-en>Sources</span>
+    </a>
+    <div class="lang-switch" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang-set="es" lang="es" aria-label="Español">ES</button>
+      <button type="button" data-lang-set="en" lang="en" aria-label="English">EN</button>
+    </div>
+  </nav>
+  <div class="scroll-progress" aria-hidden="true"><span></span></div>
 </header>

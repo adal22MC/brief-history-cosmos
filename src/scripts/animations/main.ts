@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { initLanguageToggle } from './language-toggle';
+import { initSiteHeader } from './site-header';
 import { initProgressBar, initSectionIndex, initEraDriver } from './progress-era';
 import { initEraRail, type CleanupFn } from './era-rail';
 import { initLiveData } from './live-data';
@@ -28,6 +29,7 @@ export function initAnimations() {
   };
   document.body.dataset.animsInit = '1';
   initLanguageToggle();
+  cleanupFns.push(initSiteHeader());
   cleanupFns.push(initLiveData());
   cleanupFns.push(initGlossary());
   cleanupFns.push(initChapterLinks());

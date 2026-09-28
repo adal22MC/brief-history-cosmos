@@ -191,90 +191,6 @@
   display: none;
 }
 
-.era-mobile {
-  position: fixed;
-  left: 50%;
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 44px;
-  padding: 0.35rem 0.85rem 0.35rem 0.7rem;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(6, 6, 13, 0.62);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow:
-    0 0.6rem 1.6rem rgba(0, 0, 0, 0.32),
-    0 0 1.2rem color-mix(in srgb, var(--era-accent, var(--accent)) 16%, transparent);
-  transform: translateX(-50%);
-  color: var(--fg);
-  font: inherit;
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    opacity 0.22s ease,
-    box-shadow 0.22s ease;
-  width: max-content;
-  max-width: min(320px, calc(100vw - 2rem));
-}
-
-.era-mobile:active {
-  transform: translateX(-50%) scale(0.97);
-}
-
-.era-mobile:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0.65rem 1.7rem rgba(0, 0, 0, 0.36),
-    0 0 1.6rem color-mix(in srgb, var(--era-accent, var(--accent)) 34%, transparent);
-}
-
-.era-mobile__num {
-  color: color-mix(in srgb, var(--era-accent, var(--accent)) 88%, white 12%);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  font-variant-numeric: tabular-nums;
-}
-
-.era-mobile__divider {
-  width: 1px;
-  height: 0.85rem;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.era-mobile__detail {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.era-mobile__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 11rem;
-  color: var(--fg);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.era-mobile__caret {
-  display: inline-flex;
-  color: color-mix(in srgb, var(--fg) 65%, transparent);
-  transition: transform 0.22s ease, color 0.22s ease;
-}
-
-.era-mobile[aria-expanded="true"] .era-mobile__caret {
-  transform: rotate(180deg);
-  color: var(--fg);
-}
-
 .era-sheet[hidden] {
   display: none;
 }
@@ -284,7 +200,7 @@
   inset: 0;
   z-index: 50;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -306,9 +222,13 @@
   position: relative;
   width: 100%;
   max-width: 480px;
-  margin: 0 0.6rem;
-  padding: 0.45rem 0.9rem calc(1rem + env(safe-area-inset-bottom, 0px));
-  border-radius: 0.5rem 0.5rem 0 0;
+  /* Baja desde el header, donde vive el botón que la abre. */
+  max-height: calc(100svh - 1rem - env(safe-area-inset-top, 0px));
+  margin: calc(0.5rem + env(safe-area-inset-top, 0px)) 0.6rem 0;
+  padding: 0.7rem 0.9rem 0.9rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0.75rem;
   background:
     radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--era-accent, var(--accent)) 18%, transparent), transparent 38%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
@@ -316,11 +236,11 @@
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   box-shadow:
-    0 -1.2rem 3.5rem rgba(0, 0, 0, 0.55),
+    0 1.2rem 3.5rem rgba(0, 0, 0, 0.55),
     0 0 2rem color-mix(in srgb, var(--era-accent, var(--accent)) 12%, transparent);
   opacity: 0;
-  transform: translateY(1.15rem) scale(0.985);
-  transform-origin: 50% 100%;
+  transform: translateY(-1rem) scale(0.985);
+  transform-origin: 50% 0;
   transition:
     opacity 0.24s ease,
     transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -331,26 +251,117 @@
   transform: translateY(0) scale(1);
 }
 
-.era-sheet__handle {
-  width: 2.5rem;
-  height: 4px;
-  margin: 0 auto 0.65rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-}
-
 .era-sheet__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0 0.25rem 0.55rem;
+  gap: 1rem;
+  padding: 0.2rem 0.25rem 0.85rem;
 }
 
-.era-sheet__title {
-  color: color-mix(in srgb, var(--fg) 70%, transparent);
-  font-size: 0.62rem;
+/* Encabezado: dónde estás y en qué fecha del año cósmico. */
+.era-sheet__where {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.era-sheet__when {
+  color: color-mix(in srgb, var(--fg) 60%, transparent);
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.era-sheet__current {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.era-sheet__current-num {
+  color: var(--era-accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.era-sheet__current-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-editorial);
+  font-size: 1.55rem;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+/* Barra del año cósmico: una marca por capítulo y tu posición. */
+.era-sheet__year {
+  margin: 0 0.25rem 0.55rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.era-sheet__year-track {
+  position: relative;
+  height: 3px;
+  margin: 0.2rem 0 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.era-sheet__year-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--sheet-now);
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--era-accent) 30%, transparent), var(--era-accent));
+  transition: width 0.5s ease, opacity 0.3s ease;
+}
+
+.era-sheet__year-mark {
+  position: absolute;
+  top: 50%;
+  left: var(--pos);
+  width: 2px;
+  height: 9px;
+  margin: -4.5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--mark);
+  opacity: 0.75;
+}
+
+.era-sheet__year-now {
+  position: absolute;
+  top: 50%;
+  left: var(--sheet-now);
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--era-accent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--era-accent) 25%, transparent),
+    0 0 12px var(--era-accent);
+  transition: left 0.5s ease, opacity 0.3s ease;
+}
+
+/* En las secciones de Fuentes no hay fecha: la barra queda de fondo. */
+[data-on-sources] .era-sheet__year-fill { width: 100%; opacity: 0.3; }
+[data-on-sources] .era-sheet__year-now { opacity: 0; }
+
+.era-sheet__year-scale {
+  display: flex;
+  justify-content: space-between;
+  color: color-mix(in srgb, var(--fg) 45%, transparent);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -387,13 +398,14 @@
 
 .era-sheet__item {
   --sheet-color: var(--era-accent, var(--accent));
+  position: relative;
   display: grid;
-  grid-template-columns: 1.1rem 2.4rem 1fr;
+  grid-template-columns: 1.1rem 2.2rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  min-height: 52px;
-  padding: 0.55rem 0.75rem;
+  min-height: 46px;
+  padding: 0.45rem 0.75rem;
   border: 0;
   border-radius: 0.85rem;
   background: transparent;
@@ -432,14 +444,72 @@
   border-bottom: 0 !important;
 }
 
+/* Línea de tiempo: los puntos se unen; lo ya recorrido se llena con el color de cada era. */
 .era-sheet__dot {
+  justify-self: center;
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--sheet-color) 75%, white 10%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-  opacity: 0.55;
-  transition: opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sheet-color) 70%, transparent);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.era-sheet__item.is-past .era-sheet__dot {
+  background: color-mix(in srgb, var(--sheet-color) 80%, white 8%);
+  box-shadow: none;
+}
+
+.era-sheet__list > li:not(.era-sheet__source):not(:nth-last-child(2)) .era-sheet__item::before {
+  content: '';
+  position: absolute;
+  left: calc(0.75rem + 0.55rem - 0.5px);
+  top: calc(50% + 0.45rem);
+  width: 1px;
+  height: calc(100% + 0.15rem - 0.9rem);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.era-sheet__list > li .era-sheet__item.is-past::before {
+  background: color-mix(in srgb, var(--sheet-color) 60%, transparent);
+}
+
+.era-sheet__date {
+  color: color-mix(in srgb, var(--fg) 45%, transparent);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.era-sheet__item.is-active .era-sheet__date {
+  color: color-mix(in srgb, var(--sheet-color) 85%, white 10%);
+}
+
+/* Al abrir, las filas entran escalonadas. */
+.era-sheet.is-open .era-sheet__list > li {
+  animation: sheet-row-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 30ms + 60ms);
+}
+
+@keyframes sheet-row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+/* En pantallas muy angostas la fecha baja debajo de la etiqueta. */
+@media (max-width: 360px) {
+  .era-sheet__item { grid-template-columns: 1.1rem 2.2rem minmax(0, 1fr); row-gap: 0.1rem; }
+  .era-sheet__dot,
+  .era-sheet__num { grid-row: 1 / span 2; }
+  .era-sheet__date { grid-column: 3; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .era-sheet.is-open .era-sheet__list > li { animation: none; }
+  .era-sheet__year-fill,
+  .era-sheet__year-now { transition: none; }
 }
 
 .era-sheet__num {
@@ -474,12 +544,19 @@
   text-transform: uppercase;
 }
 
+.era-sheet__source {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .era-sheet__item.is-active {
   background: color-mix(in srgb, var(--sheet-color) 14%, transparent);
   box-shadow: 0 0 1.1rem color-mix(in srgb, var(--sheet-color) 16%, transparent);
 }
 
 .era-sheet__item.is-active .era-sheet__dot {
+  background: var(--sheet-color);
   opacity: 1;
   transform: scale(1.1);
   box-shadow:

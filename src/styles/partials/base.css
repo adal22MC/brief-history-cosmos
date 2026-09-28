@@ -79,14 +79,38 @@ canvas.bg-canvas.is-ready { opacity: 1; }
 .site-header {
   position: fixed;
   inset: 0 0 auto;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
   padding: 1.4rem var(--page-gutter);
-  z-index: 40;
-  background: linear-gradient(var(--bg), rgba(6, 6, 13, 0.9) 65%, transparent);
+  transition: padding 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+/* Dos fondos que se cruzan: el degradado del inicio y el vidrio del estado compacto. */
+.site-header::before,
+.site-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.site-header::before { background: linear-gradient(var(--bg), rgba(6, 6, 13, 0.9) 65%, transparent); }
+.site-header::after {
+  background: rgba(6, 6, 13, 0.74);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  opacity: 0;
+}
+.site-header.is-compact { padding-block: 0.7rem; }
+.site-header.is-compact::before { opacity: 0; }
+.site-header.is-compact::after { opacity: 1; }
+/* Escondido solo asoma su filo: la línea de progreso sigue arriba de la pantalla. */
+.site-header.is-hidden { transform: translateY(calc(-100% + 2px)); }
+/* Con foco de teclado adentro no se esconde; un clic con el mouse no lo deja fijo. */
+.site-header:has(:focus-visible) { transform: none; }
 .site-brand {
   display: flex;
   align-items: center;
@@ -98,7 +122,8 @@ canvas.bg-canvas.is-ready { opacity: 1; }
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
-.site-brand svg { width: 35px; height: 35px; flex: none; }
+.site-brand svg { width: 35px; height: 35px; flex: none; transition: width 0.35s ease, height 0.35s ease; }
+.site-header.is-compact .site-brand svg { width: 28px; height: 28px; }
 
 /* Marca: el arco del capítulo activo se enciende y los demás se atenúan. */
 .brand-mark { overflow: visible; }
@@ -109,8 +134,44 @@ canvas.bg-canvas.is-ready { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .brand-mark__arc { transition: none; }
 }
-.site-brand__edition { display: block; margin-top: 0.2rem; font-size: 0.5rem; color: var(--muted); letter-spacing: 0.35em; }
+.site-brand__edition {
+  display: block;
+  max-height: 1rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  font-size: 0.5rem;
+  color: var(--muted);
+  letter-spacing: 0.35em;
+  transition: max-height 0.35s ease, margin 0.35s ease, opacity 0.25s ease;
+}
+.site-header.is-compact .site-brand__edition { max-height: 0; margin-top: 0; opacity: 0; }
+
+/* Centro: el lema arriba de la página y, ya compacto, el capítulo en el que estás. */
+.site-header__center { display: grid; justify-items: center; }
+.site-header__note,
+.site-header__context { grid-area: 1 / 1; transition: opacity 0.35s ease, transform 0.35s ease; }
 .site-header__note { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.19em; text-transform: uppercase; }
+.site-header__context {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(0.4rem);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.site-header.is-compact.has-context .site-header__note { opacity: 0; transform: translateY(-0.4rem); }
+.site-header.is-compact.has-context .site-header__context { opacity: 1; transform: none; }
+.site-header__num,
+.site-header__label,
+.site-header__tick { display: inline-block; }
+.site-header__num { color: var(--era-accent); font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; transition: color 0.4s ease; }
+.site-header__label { color: var(--fg); font-weight: 600; }
+.site-header__tick { color: var(--muted); }
+.site-header__tick::before { content: '·'; margin-right: 0.7rem; }
+
 .nav {
   display: flex;
   align-items: center;
@@ -121,33 +182,84 @@ canvas.bg-canvas.is-ready { opacity: 1; }
 }
 
 .nav a {
+  position: relative;
   color: var(--fg);
   text-decoration: none;
   opacity: 0.8;
   padding-block: 0.8rem;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s, color 0.4s;
 }
 
 .nav a:hover { opacity: 1; }
-.nav a[aria-current="page"] { color: var(--accent); opacity: 1; }
-
-.lang-toggle {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: inherit;
-  font: inherit;
-  font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  padding: 0.35rem 0.6rem;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+.nav a[aria-current="page"] { color: var(--era-accent); opacity: 1; }
+.nav a[aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0.45rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.55;
 }
-.lang-toggle:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.5);
+
+/* Botón de capítulos (pantallas táctiles o angostas): aparece al compactarse y abre la hoja. */
+.site-header__chapters {
+  display: none;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 0.7rem 0 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--era-accent) 30%, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.4s ease, background 0.2s ease;
+}
+.site-header__chapters:active { background: rgba(255, 255, 255, 0.09); }
+.site-header__chapters .site-header__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-header__caret { display: inline-flex; margin-left: auto; color: var(--muted); transition: transform 0.25s ease; }
+.site-header__chapters[aria-expanded="true"] .site-header__caret { transform: rotate(180deg); }
+@keyframes header-chip-in {
+  from { opacity: 0; transform: translateY(-0.3rem); }
+}
+
+/* Selector de idioma: los dos visibles, el activo resaltado. */
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+.lang-switch button {
+  min-width: 2.4rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+}
+.lang-switch button:hover { color: var(--fg); }
+html[data-lang="es"] .lang-switch [data-lang-set="es"],
+html[data-lang="en"] .lang-switch [data-lang-set="en"] {
+  background: rgba(240, 235, 225, 0.12);
+  color: var(--fg);
 }
 
 /* Bilingual: muestra solo el idioma activo. */
@@ -180,16 +292,17 @@ html[data-lang="en"] [data-es] {
   top: 1rem;
 }
 
+/* Filo del header: la línea de progreso aparece al compactarse. */
 .scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+  position: absolute;
+  inset: auto 0 0;
   height: 2px;
-  z-index: 60;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
+.site-header.is-compact .scroll-progress { opacity: 1; }
 .scroll-progress span {
   display: block;
   width: 100%;
@@ -200,45 +313,56 @@ html[data-lang="en"] [data-es] {
   will-change: transform;
 }
 
-.section-index {
-  position: fixed;
-  bottom: 1.5rem;
-  left: var(--page-gutter);
-  z-index: 30;
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  opacity: 0.85;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.section-index.is-hidden { opacity: 0; transform: translateY(0.5rem); }
-.section-index__num {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--fg);
-  display: inline-block;
-  will-change: transform, opacity;
-}
-.section-index__label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  color: var(--era-accent);
-  display: inline-block;
-  will-change: transform, opacity;
+/* Solo para lectores de pantalla. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 ::selection { background: #e4bc8b; color: #06060d; }
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .site-header::before,
+  .site-header::after,
+  .site-brand svg,
+  .site-brand__edition,
+  .site-header__note,
+  .site-header__context,
+  .site-header__chapters,
+  .site-header__caret,
+  .scroll-progress { transition: none; animation: none; }
+}
+@media (max-width: 900px), (pointer: coarse) {
+  .site-header__center { display: none; }
+  .site-header.is-compact.has-context .site-header__chapters { display: inline-flex; animation: header-chip-in 0.35s ease both; }
+}
 @media (max-width: 900px) {
-  .site-header__note { display: none; }
   .site-header { padding-block: 1rem; gap: 1rem; }
+  .site-header.is-compact { padding-block: 0.5rem; }
   .nav { gap: 1.1rem; }
+}
+/* Sin espacio para todo: compacto quedan la marca, el capítulo y el idioma; Inicio y Fuentes viven en la hoja. */
+@media (max-width: 640px) {
+  .site-header.is-compact { gap: 0.6rem; }
+  .site-header.is-compact.has-context .site-brand > span,
+  .site-header.is-compact.has-context .nav > a { display: none; }
+  .site-header.is-compact.has-context .site-header__chapters { flex: 1; }
 }
 @media (max-width: 400px) {
   .site-brand { font-size: 0.8rem; gap: 0.5rem; }
   .site-brand svg { width: 28px; height: 28px; }
   .nav { gap: 0.8rem; font-size: 0.6rem; }
+  .lang-switch button { min-width: 2rem; padding: 0 0.4rem; }
+}
+/* Pantallas de 320–360 px: se aprietan márgenes y espacios para que marca, enlaces e idioma quepan en una fila. */
+@media (max-width: 360px) {
+  .site-header { gap: 0.5rem; padding-inline: 1rem; }
+  .site-brand { gap: 0.4rem; letter-spacing: 0.14em; }
+  .nav { gap: 0.6rem; }
+  .lang-switch { padding: 2px; }
+  .lang-switch button { min-width: 1.75rem; padding: 0 0.3rem; }
 }

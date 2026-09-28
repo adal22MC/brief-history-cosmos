@@ -44,41 +44,34 @@ export function initEraDriver() {
   });
 }
 
+// Sigue la sección activa: la anuncia con cosmos:section-change y la muestra en el header.
 export function initSectionIndex(isReduced = false) {
-  const indexEl = document.querySelector<HTMLElement>('.section-index');
-  const numEl = document.querySelector<HTMLElement>('.section-index__num');
-  const labelEl = document.querySelector<HTMLElement>('.section-index__label');
-  if (!indexEl || !numEl || !labelEl) return () => {};
-
-  // El índice fijo se retira cuando tarjetas o pie de página llegan a su esquina.
-  const covering = new Set<Element>();
-  indexEl.classList.remove('is-hidden');
-  document.querySelectorAll<HTMLElement>('[data-index-hide]').forEach((el) => {
-    ScrollTrigger.create({
-      trigger: el,
-      start: 'top bottom',
-      end: 'bottom bottom-=64',
-      onToggle: (self) => {
-        if (self.isActive) covering.add(el);
-        else covering.delete(el);
-        indexEl.classList.toggle('is-hidden', covering.size > 0);
-      },
-    });
-  });
-
+  const header = document.querySelector<HTMLElement>('[data-site-header]');
+  // El capítulo aparece dos veces: al centro en escritorio y en el botón de capítulos en pantallas táctiles.
+  const fields = {
+    num: gsap.utils.toArray<HTMLElement>('[data-header-num]'),
+    label: gsap.utils.toArray<HTMLElement>('[data-header-label]'),
+    tick: gsap.utils.toArray<HTMLElement>('[data-header-tick]'),
+  };
+  const fieldEls = [...fields.num, ...fields.label, ...fields.tick];
   const sections = gsap.utils.toArray<HTMLElement>('[data-section-label]');
   let activeSection: HTMLElement | null = null;
 
-  const getSectionLabel = (section: HTMLElement) => {
-    const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
-    return section.dataset[`sectionLabel${lang === 'en' ? 'En' : 'Es'}`] ?? section.dataset.sectionLabel ?? '';
+  const localized = (section: HTMLElement, key: 'sectionLabel' | 'sectionTick') => {
+    const suffix = document.documentElement.dataset.lang === 'en' ? 'En' : 'Es';
+    return section.dataset[`${key}${suffix}`] ?? section.dataset[key] ?? '';
   };
 
-  const updateActiveLabel = () => {
-    if (activeSection) labelEl.textContent = getSectionLabel(activeSection);
+  const render = () => {
+    if (!activeSection) return;
+    const section = activeSection;
+    fields.num.forEach((el) => (el.textContent = section.dataset.sectionNum ?? ''));
+    fields.label.forEach((el) => (el.textContent = localized(section, 'sectionLabel')));
+    fields.tick.forEach((el) => (el.textContent = localized(section, 'sectionTick')));
+    header?.classList.toggle('has-context', Boolean(activeSection.dataset.sectionNum));
   };
 
-  document.addEventListener('cosmos:language-change', updateActiveLabel);
+  document.addEventListener('cosmos:language-change', render);
   sections.forEach((section, i) => {
     const num = String(i + 1).padStart(2, '0');
     ScrollTrigger.create({
@@ -86,28 +79,26 @@ export function initSectionIndex(isReduced = false) {
       start: 'top 50%',
       end: 'bottom 50%',
       onToggle: (self) => {
-        if (self.isActive) {
-          const era = section.dataset.era as Era | undefined;
-          const label = getSectionLabel(section);
-          activeSection = section;
-          if (!isReduced) gsap.fromTo(
-            [numEl, labelEl],
-            { yPercent: 30, opacity: 0 },
+        if (!self.isActive) return;
+        activeSection = section;
+        if (!isReduced && fieldEls.length) {
+          gsap.fromTo(
+            fieldEls,
+            { yPercent: 40, opacity: 0 },
             { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.05, overwrite: true },
           );
-          numEl.textContent = num;
-          labelEl.textContent = label;
-          document.dispatchEvent(
-            new CustomEvent('cosmos:section-change', {
-              detail: { index: i, label, num, era, id: section.id },
-            }),
-          );
         }
+        render();
+        document.dispatchEvent(
+          new CustomEvent('cosmos:section-change', {
+            detail: { index: i, label: localized(section, 'sectionLabel'), num, era: section.dataset.era as Era | undefined, id: section.id },
+          }),
+        );
       },
     });
   });
   return () => {
-    document.removeEventListener('cosmos:language-change', updateActiveLabel);
-    gsap.killTweensOf([numEl, labelEl]);
+    document.removeEventListener('cosmos:language-change', render);
+    gsap.killTweensOf(fieldEls);
   };
 }

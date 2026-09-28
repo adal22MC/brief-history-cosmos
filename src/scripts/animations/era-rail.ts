@@ -16,16 +16,6 @@ function isEditableTarget(target: EventTarget | null) {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 }
 
-function getRailSectionLabel(section: HTMLElement | undefined) {
-  if (!section) return '';
-  const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'es';
-  return (
-    section.dataset[`sectionLabel${lang === 'en' ? 'En' : 'Es'}`] ??
-    section.dataset.sectionLabel ??
-    ''
-  );
-}
-
 // En la portada cada capítulo es su propia sección; en Fuentes, el bloque de cada capítulo lo señala con data-rail-id.
 const railIdOf = (section: HTMLElement | undefined) => section?.dataset.railId ?? section?.id;
 
@@ -51,9 +41,12 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const mobileSheet = document.querySelector<HTMLElement>('[data-rail-mobile-sheet]');
   const mobileBackdrop = document.querySelector<HTMLElement>('[data-rail-mobile-backdrop]');
   const mobileClose = document.querySelector<HTMLButtonElement>('[data-rail-mobile-close]');
-  const mobileStatus = document.querySelector<HTMLElement>('[data-rail-mobile-status]');
-  const mobileLabel = document.querySelector<HTMLElement>('[data-rail-mobile-label]');
   const sheetBilingual = mobile?.querySelectorAll<HTMLElement>('[data-bilingual-es]');
+  const sheetPanel = mobile.querySelector<HTMLElement>('[data-sheet-panel]');
+  const sheetWhen = mobile.querySelector<HTMLElement>('[data-sheet-when]');
+  const sheetNum = mobile.querySelector<HTMLElement>('[data-sheet-num]');
+  const sheetLabel = mobile.querySelector<HTMLElement>('[data-sheet-label]');
+  const sheetChapters = sheetItems.filter((item) => item.dataset.railTarget !== 'sources');
   const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   const track = rail.querySelector<HTMLElement>('[data-rail-track]');
   const fill = rail.querySelector<HTMLElement>('[data-rail-fill]');
@@ -71,7 +64,6 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     const activeSection = sections[activeIndex];
     const activeId = railIdOf(activeSection);
     const activeEra = activeSection?.dataset.era as Era | undefined;
-    const activeLink = chapterLinks.find((link) => link.dataset.railTarget === activeId);
 
     links.forEach((link) => {
       const isActive = Boolean(activeId && link.dataset.railTarget === activeId);
@@ -84,14 +76,28 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (activeEra) {
       document.documentElement.style.setProperty('--era-accent', ERA_ACCENTS[activeEra]);
     }
-    if (mobileStatus) {
-      mobileStatus.textContent = activeLink
-        ? activeLink.querySelector('.era-rail__num')?.textContent ?? String(activeIndex + 1).padStart(2, '0')
-        : 'SRC';
+    syncSheet();
+  };
+
+  // Encabezado y línea de tiempo de la hoja: dónde estás, qué ya pasó y tu lugar en el año cósmico.
+  const syncSheet = () => {
+    const activeItem = sheetItems.find((item) => item.classList.contains('is-active'));
+    const chapterIndex = activeItem ? sheetChapters.indexOf(activeItem) : -1;
+    sheetChapters.forEach((item, i) => item.classList.toggle('is-past', chapterIndex >= 0 && i < chapterIndex));
+    if (!activeItem || !sheetPanel) return;
+    sheetPanel.toggleAttribute('data-on-sources', chapterIndex < 0);
+    if (activeItem.dataset.sheetPos) sheetPanel.style.setProperty('--sheet-now', activeItem.dataset.sheetPos);
+    if (sheetNum) sheetNum.textContent = activeItem.querySelector('.era-sheet__num')?.textContent ?? '';
+    const label = activeItem.querySelector<HTMLElement>('.era-sheet__label');
+    if (sheetLabel && label) {
+      sheetLabel.dataset.bilingualEs = label.dataset.bilingualEs;
+      sheetLabel.dataset.bilingualEn = label.dataset.bilingualEn;
     }
-    if (mobileLabel) {
-      mobileLabel.textContent = activeSection ? getRailSectionLabel(activeSection) : '';
+    if (sheetWhen) {
+      sheetWhen.dataset.bilingualEs = activeItem.dataset.sheetWhenEs;
+      sheetWhen.dataset.bilingualEn = activeItem.dataset.sheetWhenEn;
     }
+    syncSheetBilingual();
   };
 
   const syncSheetBilingual = () => {
