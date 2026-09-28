@@ -2,9 +2,6 @@ const ARC_STAGGER_MS = 90;
 const ARC_DRAW_MS = 420;
 const DOT_DELAY_MS = 7 * ARC_STAGGER_MS + 120;
 
-// El encendido completo solo pasa en la primera carga; navegar entre páginas no lo repite.
-let ignitedOnce = false;
-
 function ignite(mark: SVGSVGElement) {
   const arcs = Array.from(mark.querySelectorAll<SVGPathElement>('.brand-mark__arc'));
   const dot = mark.querySelector<SVGCircleElement>('.brand-mark__dot');
@@ -34,7 +31,7 @@ function ignite(mark: SVGSVGElement) {
 }
 
 /**
- * Marca animada: se traza al abrir el sitio, repite el trazo al pasar el cursor
+ * Marca animada: se traza al llegar a cada página, repite el trazo al pasar el cursor
  * y resalta el arco del capítulo que se está leyendo.
  */
 export function initBrandMark(isReduced: boolean) {
@@ -49,10 +46,7 @@ export function initBrandMark(isReduced: boolean) {
   };
 
   if (!isReduced) {
-    if (!ignitedOnce) {
-      ignitedOnce = true;
-      marks.forEach(play);
-    }
+    marks.forEach(play);
     marks.forEach((mark) => {
       const host = mark.closest('a') ?? mark;
       const onEnter = () => play(mark);

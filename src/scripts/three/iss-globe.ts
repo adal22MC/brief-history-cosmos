@@ -378,8 +378,10 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   let hasPosition = false;
 
   let raf = 0;
+  let running = false;
   const clock = new Clock();
   const tick = () => {
+    if (!running) return;
     const t = clock.getElapsedTime();
     cloudMat.uniforms.uTime.value = t;
     if (hasPosition) {
@@ -397,7 +399,22 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
     renderer.render(scene, camera);
     raf = requestAnimationFrame(tick);
   };
-  tick();
+
+  // Solo dibuja mientras el globo está en pantalla y la pestaña visible.
+  let onScreen = false;
+  const syncRunning = () => {
+    const shouldRun = onScreen && !document.hidden;
+    if (shouldRun === running) return;
+    running = shouldRun;
+    if (running) raf = requestAnimationFrame(tick);
+    else cancelAnimationFrame(raf);
+  };
+  const io = new IntersectionObserver((entries) => {
+    onScreen = entries.some((entry) => entry.isIntersecting);
+    syncRunning();
+  });
+  io.observe(canvas);
+  document.addEventListener('visibilitychange', syncRunning);
 
   const updatePosition = (lat: number, lon: number) => {
     issLocal.copy(latLonToVec3(lat, lon, ORBIT_RADIUS));
@@ -428,7 +445,10 @@ export function initIssGlobe(canvas: HTMLCanvasElement): IssGlobeAPI {
   };
 
   const destroy = () => {
+    running = false;
     cancelAnimationFrame(raf);
+    io.disconnect();
+    document.removeEventListener('visibilitychange', syncRunning);
     ro.disconnect();
     earthGeo.dispose();
     earthMat.dispose();

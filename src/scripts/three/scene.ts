@@ -21,6 +21,7 @@ import { WebGLRenderer } from 'three/src/renderers/WebGLRenderer.js';
 import type { Object3D } from 'three/src/core/Object3D.js';
 import { gsap } from 'gsap';
 import { ERA_PRESETS, type Era } from './era-presets';
+import { createEraParticles } from './era-particles';
 
 export type SceneOptions = Record<string, never>;
 
@@ -51,7 +52,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     antialias: true,
     alpha: true,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // En móvil se arranca con menos resolución; la calidad adaptativa baja más si hace falta.
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const maxPixelRatio = Math.min(window.devicePixelRatio, coarse ? 1.5 : 2);
+  renderer.setPixelRatio(maxPixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.85;
@@ -67,6 +71,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uNoiseFreq: { value: 0.9 },
       uIntensity: { value: 1.0 },
       uFlash: { value: 0 },
+      uCmb: { value: 0 },
     },
     vertexShader: /* glsl */ `
       uniform float uTime;
@@ -162,6 +167,38 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       varying float vDistort;
 
       uniform float uFlash;
+      uniform float uCmb;
+
+      // Ruido de valor para el mapa del fondo de microondas (02); barato y suficiente a esta escala.
+      float cmbHash(vec3 p) {
+        p = fract(p * 0.3183099 + 0.1);
+        p *= 17.0;
+        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+      }
+      float cmbNoise(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+          mix(mix(cmbHash(i), cmbHash(i + vec3(1, 0, 0)), f.x),
+              mix(cmbHash(i + vec3(0, 1, 0)), cmbHash(i + vec3(1, 1, 0)), f.x), f.y),
+          mix(mix(cmbHash(i + vec3(0, 0, 1)), cmbHash(i + vec3(1, 0, 1)), f.x),
+              mix(cmbHash(i + vec3(0, 1, 1)), cmbHash(i + vec3(1, 1, 1)), f.x), f.y),
+          f.z);
+      }
+      // Paleta tipo mapa de Planck: azul profundo, celeste, crema, naranja y rojo.
+      vec3 cmbRamp(float t) {
+        vec3 c1 = vec3(0.05, 0.12, 0.45);
+        vec3 c2 = vec3(0.25, 0.55, 0.95);
+        vec3 c3 = vec3(0.98, 0.93, 0.80);
+        vec3 c4 = vec3(1.0, 0.55, 0.18);
+        vec3 c5 = vec3(0.75, 0.12, 0.05);
+        t = clamp(t, 0.0, 1.0);
+        if (t < 0.25) return mix(c1, c2, t / 0.25);
+        if (t < 0.5) return mix(c2, c3, (t - 0.25) / 0.25);
+        if (t < 0.75) return mix(c3, c4, (t - 0.5) / 0.25);
+        return mix(c4, c5, (t - 0.75) / 0.25);
+      }
 
       void main() {
         float shell = smoothstep(-0.18, 0.18, vDistort);
@@ -172,6 +209,15 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         vec3 corona = mix(uColorA, vec3(0.75, 0.92, 1.0), radial) * fresnel * 0.55;
         vec3 core = mix(uColorA, vec3(1.0), radial) * radial * 0.25;
         vec3 color = base + corona + core;
+
+        if (uCmb > 0.001) {
+          vec3 q = normalize(vPosition) * 3.2;
+          float n = 0.0;
+          float amp = 0.5;
+          for (int i = 0; i < 4; i++) { n += amp * cmbNoise(q); q *= 2.03; amp *= 0.5; }
+          vec3 cmb = cmbRamp(smoothstep(0.28, 0.72, n)) * (0.35 + 0.5 * radial) + corona * 0.6;
+          color = mix(color, cmb, uCmb);
+        }
 
         // Photon decoupling flash: el blob también irradia luz cálida en el desacople.
         color += vec3(1.0, 0.9, 0.7) * uFlash * (0.4 + radial * 0.6);
@@ -348,7 +394,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     fog: false,
     uniforms: {
       uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uPixelRatio: { value: maxPixelRatio },
       // Inicia en estado "hot" (Big Bang): sin estrellas — el plasma aún no es transparente.
       uDensity: { value: ERA_PRESETS.hot.starDensity },
       uTwinkle: { value: ERA_PRESETS.hot.starTwinkle },
@@ -393,81 +439,17 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   const points = new Points(pGeo, pMat);
   scene.add(points);
 
-  // ───────── Polvo cercano: nube protoplanetaria sutil que solo se enciende en
-  // eras donde tiene sentido narrativo. Distribuida alrededor del origen local;
-  // en tick() trasladamos el grupo a la posición del blob para que la nube siga
-  // al "personaje" sin invadir el texto al cambiar viewport.
-  const dustCount = 160;
-  const dustPos = new Float32Array(dustCount * 3);
-  const dustSizes = new Float32Array(dustCount);
-  const dustPhases = new Float32Array(dustCount);
-  for (let i = 0; i < dustCount; i++) {
-    // Disco achatado en xy alrededor del origen local del Points.
-    const r = 0.3 + Math.random() * 1.9;
-    const theta = Math.random() * Math.PI * 2;
-    dustPos[i * 3 + 0] = Math.cos(theta) * r;
-    dustPos[i * 3 + 1] = Math.sin(theta) * r * 0.5;
-    dustPos[i * 3 + 2] = (Math.random() - 0.5) * 2.8;
-    dustSizes[i] = 0.6 + Math.random() * 1.4;
-    dustPhases[i] = Math.random();
-  }
-  const dustGeo = new BufferGeometry();
-  dustGeo.setAttribute('position', new BufferAttribute(dustPos, 3));
-  dustGeo.setAttribute('aSize', new BufferAttribute(dustSizes, 1));
-  dustGeo.setAttribute('aPhase', new BufferAttribute(dustPhases, 1));
-  const dustMat = new ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    fog: false,
-    uniforms: {
-      uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-      uDensity: { value: 0 },
-      uTint: { value: new Color('#f5d27a') },
-    },
-    vertexShader: /* glsl */ `
-      attribute float aSize;
-      attribute float aPhase;
-      uniform float uTime;
-      uniform float uPixelRatio;
-      varying float vDrift;
-      void main() {
-        vec3 pos = position;
-        // Deriva muy suave en y para sugerir flotación, sin escapar nunca de su zona.
-        pos.y += sin(uTime * 0.18 + aPhase * 6.28318) * 0.18;
-        pos.x += cos(uTime * 0.13 + aPhase * 6.28318) * 0.12;
-        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
-        vDrift = 0.55 + 0.45 * (0.5 + 0.5 * sin(uTime * 0.6 + aPhase * 6.28318));
-        gl_PointSize = aSize * uPixelRatio * (160.0 / -mvPos.z) * vDrift;
-        gl_Position = projectionMatrix * mvPos;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uDensity;
-      uniform vec3 uTint;
-      varying float vDrift;
-      void main() {
-        vec2 c = gl_PointCoord - 0.5;
-        float d = length(c);
-        // Polvo: difuso, sin núcleo duro como las estrellas, opacidad baja para no robar texto.
-        float halo = smoothstep(0.5, 0.0, d) * 0.32;
-        float glow = smoothstep(0.5, 0.18, d) * 0.18;
-        float a = (halo + glow) * vDrift * uDensity;
-        gl_FragColor = vec4(uTint, a);
-      }
-    `,
-  });
-  const dust = new Points(dustGeo, dustMat);
-  scene.add(dust);
+  // ───────── Motivo por era: partículas que cambian de formación (espiral, disco…).
+  const eraParticles = createEraParticles(reducedMotion.matches);
+  scene.add(eraParticles.object);
 
-  // Densidad de polvo por era: solo planetary la enciende, galactic la insinúa.
-  const DUST_DENSITY: Record<Era, number> = {
-    hot: 0,
-    cooling: 0,
-    stellar: 0,
-    galactic: 0.12,
-    planetary: 0.85,
+  // Los anillos decorativos se apagan cuando la formación de la era ya dibuja su propio plano.
+  const RING_VISIBILITY: Record<Era, number> = {
+    hot: 1,
+    cooling: 1,
+    stellar: 1,
+    galactic: 0,
+    planetary: 0,
     biotic: 0,
     now: 0,
   };
@@ -488,6 +470,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   const syncViewport = () => {
     renderer.getDrawingBufferSize(pMat.uniforms.uResolution.value);
     pMat.uniforms.uTextEdge.value = textEdgeFor(window.innerWidth);
+    pMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+    eraParticles.setViewport(pMat.uniforms.uResolution.value, pMat.uniforms.uTextEdge.value, renderer.getPixelRatio());
   };
   syncViewport();
 
@@ -495,17 +479,62 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    const pr = Math.min(window.devicePixelRatio, 2);
-    pMat.uniforms.uPixelRatio.value = pr;
-    dustMat.uniforms.uPixelRatio.value = pr;
     syncViewport();
+  });
+
+  // Calidad adaptativa: si el promedio baja de ~45 fps, reduce resolución y luego partículas.
+  // Solo baja de nivel; nunca vuelve a subir, para no oscilar.
+  const QUALITY = [
+    { pixelRatio: 2, particles: 1 },
+    { pixelRatio: 1.5, particles: 1 },
+    { pixelRatio: 1.25, particles: 0.75 },
+    { pixelRatio: 1, particles: 0.55 },
+    { pixelRatio: 0.75, particles: 0.4 },
+  ];
+  let qualityLevel = 0;
+  const applyQuality = (level: number) => {
+    qualityLevel = level;
+    const q = QUALITY[level];
+    renderer.setPixelRatio(Math.min(maxPixelRatio, q.pixelRatio));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    pGeo.setDrawRange(0, Math.floor(particleCount * q.particles));
+    eraParticles.setDensity(q.particles);
+    syncViewport();
+  };
+  const fps = { frames: 0, time: 0, warmup: 3 };
+  const sampleFrame = (frameTime: number) => {
+    if (fps.warmup > 0) {
+      fps.warmup -= frameTime;
+      return;
+    }
+    fps.frames++;
+    fps.time += frameTime;
+    // Ventana de 2 s: reacciona igual de rápido en un equipo a 50 fps que en uno a 10.
+    if (fps.time < 2) return;
+    const avg = fps.time / fps.frames;
+    fps.frames = 0;
+    fps.time = 0;
+    if (avg > 1 / 45 && qualityLevel < QUALITY.length - 1) {
+      applyQuality(qualityLevel + 1);
+      fps.warmup = 1;
+    }
+  };
+  // Al volver a la pestaña el primer cuadro trae un salto enorme; se descarta.
+  document.addEventListener('visibilitychange', () => {
+    fps.frames = 0;
+    fps.time = 0;
+    fps.warmup = 1;
   });
 
   const yieldState = { k: 0 };
 
   const clock = new Clock();
+  let lastTime = 0;
   function tick() {
     const t = clock.getElapsedTime();
+    sampleFrame(t - lastTime);
+    const delta = Math.min(t - lastTime, 0.1);
+    lastTime = t;
     mouse.x += (mouse.tx - mouse.x) * 0.05;
     mouse.y += (mouse.ty - mouse.y) * 0.05;
 
@@ -515,7 +544,6 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     auroraMat.uniforms.uTime.value = t;
     auroraMat.uniforms.uScroll.value = scrollProgress;
     pMat.uniforms.uTime.value = t;
-    dustMat.uniforms.uTime.value = t;
 
     activeObject.rotation.y = t * 0.08 * pose.rotSpeed + mouse.x * 0.14;
     activeObject.rotation.x = mouse.y * 0.08;
@@ -532,11 +560,15 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const portrait = aspect < 0.85;
     let baseX = portrait ? halfW * 0.62 : pose.x * xFactor;
     let baseY = portrait ? halfH * 0.5 + pose.y * 0.2 : pose.y;
-    let baseScale = pose.scale * scaleFactor * (portrait ? 0.72 : 1);
+    // En vertical se compensa el alejamiento de la cámara para que el blob ocupe lo mismo en pantalla
+    // en todos los capítulos. En escritorio el alejamiento se conserva como parte del relato.
+    // En vertical el tamaño por era se topa (Inflación y Recombinación tapaban el título).
+    const eraScale = portrait ? Math.min(pose.scale, 0.9) : pose.scale;
+    let baseScale = eraScale * scaleFactor * (portrait ? 0.72 * (camZ / 6) : 1);
     const k = yieldState.k;
     if (k > 0) {
-      baseX = MathUtils.lerp(baseX, halfW * (portrait ? 0.62 : 0.68), k);
-      baseY = MathUtils.lerp(baseY, halfH * (portrait ? 0.6 : 0.56), k);
+      baseX = MathUtils.lerp(baseX, halfW * (portrait ? 0.62 : 0.66), k);
+      baseY = MathUtils.lerp(baseY, halfH * (portrait ? 0.6 : 0.5), k);
       baseScale *= 1 - 0.55 * k;
     }
     activeObject.position.x = baseX + mouse.x * 0.16;
@@ -549,9 +581,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       shockwave.lookAt(camera.position);
     }
 
-    // El polvo sigue al blob para que la nube siempre lo rodee, sin importar
-    // la pose por era ni la compresión de viewport en portrait.
-    dust.position.copy(activeObject.position);
+    // La formación sigue al blob y escala con el viewport y el ceder el paso, no con el tamaño del blob por era.
+    // En vertical la pantalla mide ~3 unidades de ancho: la formación se reduce para caber junto al blob.
+    const formationScale = (baseScale / Math.max(eraScale, 0.01)) * (portrait ? 0.55 : 1);
+    eraParticles.update(t, delta, activeObject.position, formationScale);
 
     // Parallax del starfield + giro lento de la aurora.
     points.rotation.y = t * 0.015 + mouse.x * 0.025;
@@ -622,12 +655,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const flowTarget = era === 'biotic' ? 1.0 : era === 'galactic' ? 0.35 : 0;
     gsap.to(auroraMat.uniforms.uFlow, { value: flowTarget, duration, ease: 'power2.inOut' });
 
-    // Polvo cercano: visible solo en planetary, sutil en galactic.
-    gsap.to(dustMat.uniforms.uDensity, {
-      value: DUST_DENSITY[era],
-      duration,
-      ease: 'power2.inOut',
-    });
+    eraParticles.setEra(era, duration);
+    gsap.to(material.uniforms.uCmb, { value: era === 'cooling' ? 1 : 0, duration, ease: 'power2.inOut' });
+    gsap.to(ringMat, { opacity: 0.34 * RING_VISIBILITY[era], duration, ease: 'power2.inOut' });
+    gsap.to(ringB.material as MeshBasicMaterial, { opacity: 0.2 * RING_VISIBILITY[era], duration, ease: 'power2.inOut' });
 
     gsap.to(pMat.uniforms.uDensity, { value: p.starDensity, duration, ease: 'power2.inOut' });
     gsap.to(pMat.uniforms.uTwinkle, { value: p.starTwinkle, duration, ease: 'power2.inOut' });
