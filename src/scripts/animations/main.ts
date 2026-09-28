@@ -1,20 +1,18 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import type { SceneAPI } from '../three/scene';
 import { initLanguageToggle } from './language-toggle';
 import { initProgressBar, initSectionIndex, initEraDriver } from './progress-era';
 import { initEraRail, type CleanupFn } from './era-rail';
 import { initLiveData } from './live-data';
 import { initChapterMotion } from './chapter-motion';
+import { initGlossary } from './glossary';
+import { initChapterLinks } from './chapter-links';
+import { initBrandMark } from './brand-mark';
 
 gsap.registerPlugin(ScrollTrigger);
 
-interface AnimOpts {
-  sceneApi?: SceneAPI | null;
-}
-
-export function initAnimations(opts: AnimOpts = {}) {
+export function initAnimations() {
   window.__cosmosAnimationsCleanup?.();
   const cleanupFns: CleanupFn[] = [];
   let disposed = false;
@@ -29,7 +27,9 @@ export function initAnimations(opts: AnimOpts = {}) {
   };
   document.body.dataset.animsInit = '1';
   initLanguageToggle();
-  cleanupFns.push(initLiveData(opts.sceneApi ?? null));
+  cleanupFns.push(initLiveData());
+  cleanupFns.push(initGlossary());
+  cleanupFns.push(initChapterLinks());
 
   const refresh = () => {
     if (!disposed && document.visibilityState === 'visible') ScrollTrigger.refresh();
@@ -70,12 +70,14 @@ export function initAnimations(opts: AnimOpts = {}) {
           lenis?.destroy();
           lenis = null;
         });
-        initChapterMotion();
+        motionCleanup.push(initChapterMotion());
       }
 
+      // Antes que el índice de secciones, para recibir el primer cosmos:section-change.
+      motionCleanup.push(initBrandMark(isReduced));
       initProgressBar();
       motionCleanup.push(initSectionIndex(isReduced));
-      initEraDriver(opts.sceneApi ?? null);
+      initEraDriver();
       initEraRail({ lenis, isReduced, onCleanup: (cleanup) => motionCleanup.push(cleanup) });
 
       document.querySelectorAll<HTMLAnchorElement>('[data-chapter-target]').forEach((link) => {

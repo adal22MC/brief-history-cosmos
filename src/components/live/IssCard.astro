@@ -4,13 +4,21 @@
 <article class="live-card live-card--iss" data-iss>
   <header>
     <span class="live-card__kicker">
+      <span class="live-card__pulse" aria-hidden="true"></span>
       <span data-es>ISS · en vivo</span><span data-en>ISS · live</span>
     </span>
     <h3>
       <span data-es>Estación Espacial Internacional</span><span data-en>International Space Station</span>
     </h3>
+    <p class="iss-context" data-iss-context aria-live="polite">
+      <span data-es>Buscando la estación…</span><span data-en>Locating the station…</span>
+    </p>
   </header>
-  <canvas class="iss-globe" data-iss-canvas aria-label="ISS globe visualization"></canvas>
+  <canvas class="iss-globe" data-iss-canvas role="img" aria-label="Globo terráqueo con la posición y la órbita de la ISS / Globe with the ISS position and orbit"></canvas>
+  <p class="iss-legend">
+    <span class="iss-legend__item iss-legend__item--past"><span data-es>Últimos 45 min</span><span data-en>Last 45 min</span></span>
+    <span class="iss-legend__item iss-legend__item--next"><span data-es>Próximos 45 min</span><span data-en>Next 45 min</span></span>
+  </p>
   <dl class="iss-data">
     <div>
       <dt><span data-es>Latitud</span><span data-en>Latitude</span></dt>
@@ -29,4 +37,5 @@
       <dd data-iss-vel>—</dd>
     </div>
   </dl>
+  <footer class="live-card__credit" data-iss-updated></footer>
 </article>

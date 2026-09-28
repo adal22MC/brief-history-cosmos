@@ -4,6 +4,8 @@ import ChapterSection from '@/components/chapter/ChapterSection.astro';
 import LiveNowGrid from '@/components/live/LiveNowGrid.astro';
 import SiteFooter from '@/components/layout/SiteFooter.astro';
 import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import GlossaryTerm from '@/components/ui/GlossaryTerm.astro';
+import CosmicCalendar from '@/components/chapter/CosmicCalendar.astro';
 import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
 
 const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
@@ -25,18 +27,17 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
         es="El universo cabía en un punto. Luego dejó de caber."
         en="The universe fit in a point. Then it didn't."
       />
-      <BilingualSpan
-        slot="note"
-        es="En una fracción mínima de segundo, el espacio se estiró más rápido que cualquier señal pudiera recorrerlo."
-        en="In a tiny fraction of a second, space stretched faster than any signal could cross it."
-      />
+      <span slot="note">
+        <span data-es>En una fracción mínima de segundo, <GlossaryTerm id="inflation">el espacio se estiró</GlossaryTerm> más rápido que cualquier señal pudiera recorrerlo.</span>
+        <span data-en>In a tiny fraction of a second, <GlossaryTerm id="inflation">space stretched</GlossaryTerm> faster than any signal could cross it.</span>
+      </span>
       <div slot="stats">
         <dt><BilingualSpan es="Edad" en="Age" /></dt>
-        <dd>10⁻³² s</dd>
+        <dd>10<span data-count="-32" data-count-format="exp">⁻³²</span> s</dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Expansión" en="Expansion" /></dt>
-        <dd>×10²⁶</dd>
+        <dd>×10<span data-count="26" data-count-format="exp">²⁶</span></dd>
       </div>
     </ChapterSection>
 
@@ -47,20 +48,19 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
         es="380 000 años después, la luz por fin pudo viajar."
         en="380,000 years later, light could finally travel."
       />
-      <BilingualSpan
-        slot="note"
-        es="Los electrones encontraron núcleos, el plasma se volvió transparente y quedó grabado el eco térmico del inicio."
-        en="Electrons joined nuclei, plasma turned transparent, and the early thermal echo was imprinted."
-      />
+      <span slot="note">
+        <span data-es>Los electrones encontraron núcleos, el plasma se volvió transparente y quedó grabado el <GlossaryTerm id="cmb">eco térmico</GlossaryTerm> del inicio.</span>
+        <span data-en>Electrons joined nuclei, plasma turned transparent, and the early <GlossaryTerm id="cmb">thermal echo</GlossaryTerm> was imprinted.</span>
+      </span>
       <div slot="stats">
         <dt><BilingualSpan es="Edad" en="Age" /></dt>
         <dd>
-          380 000 <BilingualSpan es="años" en="years" />
+          <span data-count="380000">380 000</span> <BilingualSpan es="años" en="years" />
         </dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Temperatura" en="Temperature" /></dt>
-        <dd>3 000 K</dd>
+        <dd><span data-count="3000" data-count-from="100000">3 000</span> K</dd>
       </div>
     </ChapterSection>
 
@@ -78,11 +78,11 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
       />
       <div slot="stats">
         <dt><BilingualSpan es="Edad" en="Age" /></dt>
-        <dd>~200 Ma</dd>
+        <dd>~<span data-count="200">200</span> <GlossaryTerm id="ma">Ma</GlossaryTerm></dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Población" en="Population" /></dt>
-        <dd>III</dd>
+        <dd><GlossaryTerm id="pop3">III</GlossaryTerm></dd>
       </div>
     </ChapterSection>
 
@@ -93,18 +93,17 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
         es="La gravedad tejió a las estrellas en espirales."
         en="Gravity wove the stars into spirals."
       />
-      <BilingualSpan
-        slot="note"
-        es="Discos, halos y brazos espirales empezaron a mezclar gas, polvo y generaciones enteras de estrellas."
-        en="Disks, halos, and spiral arms began mixing gas, dust, and whole generations of stars."
-      />
+      <span slot="note">
+        <span data-es>Discos, <GlossaryTerm id="halo">halos</GlossaryTerm> y brazos espirales empezaron a mezclar gas, polvo y generaciones enteras de estrellas.</span>
+        <span data-en>Disks, <GlossaryTerm id="halo">halos</GlossaryTerm>, and spiral arms began mixing gas, dust, and whole generations of stars.</span>
+      </span>
       <div slot="stats">
         <dt><BilingualSpan es="Edad" en="Age" /></dt>
-        <dd>1 Ga</dd>
+        <dd><span data-count="1">1</span> <GlossaryTerm id="ga">Ga</GlossaryTerm></dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Vía Láctea" en="Milky Way" /></dt>
-        <dd>~10¹¹ ★</dd>
+        <dd>~10<span data-count="11" data-count-format="exp">¹¹</span> ★</dd>
       </div>
     </ChapterSection>
 
@@ -122,21 +121,20 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
       />
       <div slot="stats">
         <dt><BilingualSpan es="Hace" en="Ago" /></dt>
-        <dd>4.6 Ga</dd>
+        <dd><span data-count="4.6" data-count-decimals="1">4.6</span> Ga</dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Planetas" en="Planets" /></dt>
-        <dd>8</dd>
+        <dd><span data-count="8">8</span></dd>
       </div>
     </ChapterSection>
 
     <ChapterSection chapter={c06} totalChapters={CHAPTER_COUNT}>
       <BilingualSpan slot="heading" es="Química inquieta" en="Restless chemistry" />
-      <BilingualSpan
-        slot="lede"
-        es="Una química inquieta empezó a copiarse a sí misma."
-        en="A restless chemistry started copying itself."
-      />
+      <span slot="lede">
+        <span data-es>Una química inquieta empezó a <GlossaryTerm id="replication">copiarse a sí misma</GlossaryTerm>.</span>
+        <span data-en>A restless chemistry started <GlossaryTerm id="replication">copying itself</GlossaryTerm>.</span>
+      </span>
       <BilingualSpan
         slot="note"
         es="La evolución convirtió moléculas frágiles en células, ecosistemas y memorias capaces de adaptarse."
@@ -144,11 +142,11 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
       />
       <div slot="stats">
         <dt><BilingualSpan es="Hace" en="Ago" /></dt>
-        <dd>3.7 Ga</dd>
+        <dd><span data-count="3.7" data-count-decimals="1">3.7</span> Ga</dd>
       </div>
       <div slot="stats">
         <dt><BilingualSpan es="Especies" en="Species" /></dt>
-        <dd>~10⁷</dd>
+        <dd>~10<span data-count="7" data-count-format="exp">⁷</span></dd>
       </div>
     </ChapterSection>
 
@@ -169,8 +167,9 @@ const [, c02, c03, c04, c05, c06, c07] = CHAPTERS;
         en="The story is no longer only past tense: we measure it live through orbits, cameras, and signals arriving now."
       />
       <div slot="extra">
+        <CosmicCalendar />
         <LiveNowGrid />
-        <a href="/work" class="chapter__more">
+        <a href="/work#src-now" class="chapter__more" data-index-hide>
           <BilingualSpan es="Fuentes y créditos →" en="Sources and credits →" />
         </a>
       </div>

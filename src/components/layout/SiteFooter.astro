@@ -1,17 +1,66 @@
 ---
+import BrandMark from '@/components/ui/BrandMark.astro';
+
+const isHome = Astro.url.pathname === '/';
+const year = new Date().getFullYear();
+
+const BUILT_WITH = [
+  { label: 'Astro', href: 'https://astro.build' },
+  { label: 'Three.js', href: 'https://threejs.org' },
+  { label: 'GSAP', href: 'https://gsap.com' },
+  { label: 'Lenis', href: 'https://lenis.darkroom.engineering' },
+];
+
+const DATA = [
+  { label: 'NASA APOD', href: 'https://apod.nasa.gov/apod/astropix.html' },
+  { label: 'Where the ISS at?', href: 'https://wheretheiss.at' },
+  { label: 'Natural Earth', href: 'https://www.naturalearthdata.com' },
+];
 ---
 
-<footer>
-  <p>
-    <span data-es>Construido con Astro · 2026</span>
-    <span data-en>Built with Astro · 2026</span>
-  </p>
-  <p class="footer__author">
-    <span data-es
-      >Una experiencia interactiva de <strong>Adalberto Moreno Cárdenas</strong></span
-    >
-    <span data-en
-      >An interactive experience by <strong>Adalberto Moreno Cárdenas</strong></span
-    >
-  </p>
+<footer class="site-footer" data-index-hide data-scene-yield>
+  <div class="site-footer__closing">
+    <div class="site-footer__coda">
+      <p class="site-footer__line">
+        <span data-es>Y la historia sigue ocurriendo.</span>
+        <span data-en>And the story is still happening.</span>
+      </p>
+      <p class="site-footer__now">
+        <span data-es>En el calendario cósmico estás en el 31 de diciembre, a las 23:59:59.</span>
+        <span data-en>On the cosmic calendar, you are at December 31, 23:59:59.</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="site-footer__meta">
+    <a class="site-footer__brand" href="/" aria-label="Cosmos — Inicio / Home">
+      <BrandMark />
+      <span>Cosmos<span class="site-footer__edition">7 eras</span></span>
+    </a>
+
+    <div class="site-footer__col">
+      <span class="site-footer__label"><span data-es>Hecho con</span><span data-en>Built with</span></span>
+      <ul>
+        {BUILT_WITH.map((item) => (
+          <li><a href={item.href} target="_blank" rel="noopener noreferrer">{item.label}</a></li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="site-footer__col">
+      <span class="site-footer__label"><span data-es>Datos</span><span data-en>Data</span></span>
+      <ul>
+        {DATA.map((item) => (
+          <li><a href={item.href} target="_blank" rel="noopener noreferrer">{item.label}</a></li>
+        ))}
+        {isHome && <li><a href="/work"><span data-es>Todas las fuentes →</span><span data-en>All sources →</span></a></li>}
+      </ul>
+    </div>
+
+    <p class="site-footer__author">
+      <span data-es>Una experiencia interactiva de</span><span data-en>An interactive experience by</span>
+      <strong>Adalberto Moreno Cárdenas</strong>
+      <span class="site-footer__year">© {year}</span>
+    </p>
+  </div>
 </footer>

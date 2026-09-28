@@ -25,7 +25,7 @@ const {
   titleEs = title,
   titleEn = title,
   description = 'A bilingual cinematic journey from the Big Bang to today, with live data from NASA APOD and the ISS.',
-  image = '/og-image.svg',
+  image = '/og-image.png',
   ogTitle,
   siteName = 'Una breve historia del cosmos',
   ogType = 'website',
@@ -68,6 +68,7 @@ const jsonLd = {
     <meta property="og:locale" content="es_ES" />
     <meta property="og:locale:alternate" content="en_US" />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={shareTitle} />
@@ -81,6 +82,7 @@ const jsonLd = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -141,37 +143,32 @@ const jsonLd = {
     </script>
     <script>
       import { initAnimations } from '@/scripts/animations';
+      import { sceneBridge } from '@/scripts/three/scene-bridge';
       import type { SceneAPI } from '@/scripts/three/scene';
 
       let scenePromise: Promise<SceneAPI> | undefined;
-      let bootId = 0;
 
       async function bootCosmos() {
-        const currentBoot = ++bootId;
+        initAnimations();
         const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement | null;
-        let sceneApi = window.__sceneApi ?? null;
-        if (canvas && !canvas.dataset.booted) {
-          try {
-            scenePromise ??= import('@/scripts/three/scene').then(({ initThreeScene }) => initThreeScene(canvas));
-            sceneApi = await scenePromise;
-            canvas.dataset.booted = '1';
-            window.__sceneApi = sceneApi;
-          } catch (error) {
-            scenePromise = undefined;
-            console.warn('Cosmos background unavailable:', error);
-          }
+        if (!canvas || canvas.dataset.booted) return;
+        try {
+          scenePromise ??= import('@/scripts/three/scene').then(({ initThreeScene }) => initThreeScene(canvas));
+          const sceneApi = await scenePromise;
+          if (canvas.dataset.booted) return;
+          canvas.dataset.booted = '1';
+          sceneBridge.attach(sceneApi);
+          canvas.classList.add('is-ready');
+        } catch (error) {
+          scenePromise = undefined;
+          console.warn('Cosmos background unavailable:', error);
         }
-        if (currentBoot !== bootId) return;
-        initAnimations({ sceneApi });
       }
 
       if (!window.__cosmosPageLoadBound) {
         window.__cosmosPageLoadBound = true;
         document.addEventListener('astro:page-load', bootCosmos);
-        document.addEventListener('astro:before-swap', () => {
-          bootId++;
-          window.__cosmosAnimationsCleanup?.();
-        });
+        document.addEventListener('astro:before-swap', () => window.__cosmosAnimationsCleanup?.());
       }
     </script>
   </head>
@@ -180,6 +177,7 @@ const jsonLd = {
       <span data-es>Saltar al contenido</span><span data-en>Skip to content</span>
     </a>
     <canvas class="bg-canvas" id="bg-canvas" aria-hidden="true" transition:persist></canvas>
+    <div class="scene-poster" aria-hidden="true"></div>
     <MainNav />
     <div class="scroll-progress" aria-hidden="true"><span /></div>
     <div class="section-index" aria-hidden="true">

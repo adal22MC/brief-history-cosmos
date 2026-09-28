@@ -1,23 +1,30 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import SourcesList from '@/components/sources/SourcesList.astro';
-import { SOURCES } from '@/content/sources';
+import ChapterSources from '@/components/sources/ChapterSources.astro';
+import ResourceList from '@/components/sources/ResourceList.astro';
+import SiteFooter from '@/components/layout/SiteFooter.astro';
+import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
+import { LIVE_SOURCES, REFERENCE_COUNT, RESOURCES } from '@/content/sources';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
 ---
 
 <Layout
   title="Fuentes — Una breve historia del cosmos"
   titleEs="Fuentes — Una breve historia del cosmos"
   titleEn="Sources — A brief history of the cosmos"
+  description="Cada cifra de Una breve historia del cosmos, con el artículo o la institución que la respalda."
 >
   <main id="main">
     <section
       id="work-sources"
-      class="section chapter hero"
+      class="section chapter sources-page"
       data-section-label="Sources"
       data-section-label-es="Fuentes"
       data-section-label-en="Sources"
       data-era="now"
       data-rail-section
+      data-index-hide
+      data-scene-yield
     >
       <div class="chapter__inner chapter__inner--wide">
         <div class="chapter__eyebrow">
@@ -26,22 +33,135 @@ import { SOURCES } from '@/content/sources';
             <span data-es>Fuentes</span><span data-en>Sources</span>
           </span>
         </div>
-        <h1>
+        <h1 class="sources-page__title">
           <span data-es>Créditos y referencias</span>
           <span data-en>Credits and references</span>
         </h1>
         <p class="lede">
-          <span data-es>Todo lo que ves arriba se apoya en datos públicos. Aquí están las fuentes.</span>
-          <span data-en>Everything above stands on public data. Here are the sources.</span>
+          <span data-es>Cada cifra del relato, con el trabajo que la respalda.</span>
+          <span data-en>Every figure in the story, with the work that backs it.</span>
+        </p>
+        <p class="sources-page__meta">
+          <span data-es>{REFERENCE_COUNT} referencias · {CHAPTER_COUNT} capítulos · {LIVE_SOURCES.length} fuentes en vivo</span>
+          <span data-en>{REFERENCE_COUNT} references · {CHAPTER_COUNT} chapters · {LIVE_SOURCES.length} live sources</span>
         </p>
 
-        <SourcesList sources={SOURCES} />
+        <nav class="sources-index" aria-label="Índice de fuentes / Sources index">
+          {CHAPTERS.map((chapter) => (
+            <a href={`#src-${chapter.id}`} style={`--c: ${ERA_ACCENTS[chapter.era]}`}>
+              <span class="sources-index__num">{chapter.railNum}</span>
+              <span data-es>{chapter.sectionLabelEs}</span><span data-en>{chapter.sectionLabelEn}</span>
+            </a>
+          ))}
+          <a href="#src-live"><span data-es>En vivo</span><span data-en>Live</span></a>
+          <a href="#src-resources"><span data-es>Recursos</span><span data-en>Resources</span></a>
+        </nav>
 
-        <a href="/" class="chapter__more">
-          <span data-es>← Volver al inicio</span>
-          <span data-en>← Back to the start</span>
-        </a>
+        <ChapterSources />
+
+        <section class="sources-group" id="src-live" aria-labelledby="src-live-title">
+          <h2 id="src-live-title"><span data-es>Datos en vivo</span><span data-en>Live data</span></h2>
+          <p>
+            <span data-es>Servicios que el capítulo 07 consulta mientras lees.</span>
+            <span data-en>Services that chapter 07 queries while you read.</span>
+          </p>
+          <ResourceList items={LIVE_SOURCES} />
+        </section>
+
+        <section class="sources-group" id="src-resources" aria-labelledby="src-resources-title">
+          <h2 id="src-resources-title"><span data-es>Recursos</span><span data-en>Resources</span></h2>
+          <p>
+            <span data-es>Mapas, ideas y tipografías que dan forma al sitio.</span>
+            <span data-en>Maps, ideas and typefaces that shape the site.</span>
+          </p>
+          <ResourceList items={RESOURCES} />
+        </section>
       </div>
     </section>
+    <SiteFooter />
   </main>
 </Layout>
+
+<style>
+  .sources-page {
+    align-items: flex-start;
+    padding-top: 9rem;
+  }
+
+  .sources-page__title {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.055em;
+  }
+
+  .sources-page__meta {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sources-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2.2rem;
+  }
+
+  .sources-index a {
+    --c: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 36px;
+    padding: 0 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+    border-radius: 999px;
+    background: rgba(6, 6, 13, 0.7);
+    color: var(--fg);
+    font-size: 0.72rem;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .sources-index a:hover {
+    border-color: var(--c);
+    background: color-mix(in srgb, var(--c) 12%, rgba(6, 6, 13, 0.7));
+  }
+
+  .sources-index__num {
+    color: var(--c);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sources-group {
+    margin-top: 4rem;
+    scroll-margin-top: 6.5rem;
+  }
+
+  .sources-group h2 {
+    font-family: var(--font-editorial);
+    font-size: clamp(2rem, 3.4vw, 2.8rem);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .sources-group > p {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 900px) {
+    .sources-page {
+      padding-top: 7.5rem;
+    }
+  }
+</style>

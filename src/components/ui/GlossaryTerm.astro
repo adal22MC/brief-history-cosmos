@@ -1,0 +1,13 @@
+---
+import { GLOSSARY, type GlossaryId } from '@/content/glossary';
+
+interface Props {
+  id: GlossaryId;
+}
+
+const { id } = Astro.props;
+const entry = GLOSSARY[id];
+const tipId = `term-${id}-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<span class="term" data-term><button type="button" class="term__trigger" aria-describedby={tipId}><slot /></button><span class="term__tip" role="tooltip" id={tipId}><strong><span data-es>{entry.termEs}</span><span data-en>{entry.termEn}</span></strong><span data-es>{entry.defEs}</span><span data-en>{entry.defEn}</span></span></span>

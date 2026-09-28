@@ -1,6 +1,8 @@
 ---
 import type { ChapterMeta } from '@/content/timeline';
 import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import GlossaryTerm from '@/components/ui/GlossaryTerm.astro';
+import Icon from '@/components/ui/Icon.astro';
 import { CHAPTERS } from '@/content/timeline';
 import { ERA_ACCENTS } from '@/scripts/three/era-presets';
 
@@ -15,6 +17,7 @@ const { chapter, totalChapters, variant = 'default' } = Astro.props;
 const paddedTotal = String(totalChapters).padStart(2, '0');
 const chapterNumLabel = `${chapter.railNum} / ${paddedTotal}`;
 const nextChapter = CHAPTERS[CHAPTERS.findIndex(({ id }) => id === chapter.id) + 1];
+const calendarPos = `${((chapter.calendarDay / 365) * 100).toFixed(2)}%`;
 
 const sectionClass = [
   'section',
@@ -41,6 +44,7 @@ const innerClass = [
   data-section-label-en={chapter.sectionLabelEn}
   data-era={chapter.era}
   data-rail-section
+  data-index-hide={variant === 'hero' ? '' : undefined}
   style={`--chapter-accent: ${ERA_ACCENTS[chapter.era]}`}
 >
   <span class="chapter__watermark" aria-hidden="true">{chapter.railNum}</span>
@@ -50,6 +54,15 @@ const innerClass = [
       <span class="tag">
         <BilingualSpan es={chapter.sectionLabelEs} en={chapter.sectionLabelEn} />
       </span>
+      {variant !== 'hero' && (
+        <button type="button" class="chapter__share" data-chapter-copy={chapter.id}>
+          <Icon name="link" size={14} />
+          <span class="chapter__share-label" aria-live="polite">
+            <span class="chapter__share-idle"><BilingualSpan es="Copiar enlace" en="Copy link" /></span>
+            <span class="chapter__share-done"><BilingualSpan es="Enlace copiado" en="Link copied" /></span>
+          </span>
+        </button>
+      )}
     </div>
     {
       variant === 'hero' ? (
@@ -75,10 +88,18 @@ const innerClass = [
         </dl>
       )
     }
+    {variant !== 'now' && (
+      <p class="chapter__calendar">
+        <span class="chapter__calendar-bar" style={`--pos: ${calendarPos}`} aria-hidden="true"><span /></span>
+        <span data-es><GlossaryTerm id="cosmicCalendar">Calendario cósmico</GlossaryTerm>: <strong>{chapter.calendarEs}</strong></span>
+        <span data-en><GlossaryTerm id="cosmicCalendar">Cosmic calendar</GlossaryTerm>: <strong>{chapter.calendarEn}</strong></span>
+        <a class="chapter__sources" href={`/work#src-${chapter.id}`}><BilingualSpan es="Fuentes" en="Sources" /></a>
+      </p>
+    )}
     <slot name="extra" />
     {nextChapter && (
       <a class="chapter__next" href={`#${nextChapter.id}`} data-chapter-target={nextChapter.id}>
-        <span class="chapter__next-icon" aria-hidden="true">↓</span>
+        <span class="chapter__next-icon" aria-hidden="true"><Icon name="arrow-down" size={18} /></span>
         <span>
           <span class="chapter__next-label"><BilingualSpan es={variant === 'hero' ? 'Comenzar el viaje' : 'Siguiente capítulo'} en={variant === 'hero' ? 'Begin the journey' : 'Next chapter'} /></span>
           <span class="chapter__next-title"><BilingualSpan es={nextChapter.sectionLabelEs} en={nextChapter.sectionLabelEn} /></span>

@@ -16,12 +16,15 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: clip;
+  overscroll-behavior-y: none;
+}
+
 html, body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-display);
-  overflow-x: hidden;
-  overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -48,6 +51,29 @@ canvas.bg-canvas {
   height: 100vh;
   z-index: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+canvas.bg-canvas.is-ready { opacity: 1; }
+
+/* Póster mientras carga three.js; también queda como fondo si WebGL no está disponible. */
+.scene-poster {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --poster-x: 63%;
+  --poster-y: 50%;
+  background:
+    radial-gradient(circle at var(--poster-x) var(--poster-y),
+      color-mix(in srgb, var(--era-accent) 42%, transparent) 0,
+      color-mix(in srgb, var(--era-accent) 14%, transparent) 13vmin,
+      transparent 27vmin);
+  transition: opacity 1.2s ease;
+}
+.bg-canvas.is-ready ~ .scene-poster { opacity: 0; }
+@media (max-aspect-ratio: 17/20) {
+  .scene-poster { --poster-x: 88%; --poster-y: 25%; }
 }
 
 .site-header {
@@ -72,8 +98,17 @@ canvas.bg-canvas {
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
-.site-brand svg { width: 35px; height: 35px; stroke: var(--accent); stroke-width: 0.9; }
-.site-brand__star { fill: var(--accent); stroke: none; }
+.site-brand svg { width: 35px; height: 35px; flex: none; }
+
+/* Marca: el arco del capítulo activo se enciende y los demás se atenúan. */
+.brand-mark { overflow: visible; }
+.brand-mark__arc { transition: opacity 0.5s ease, stroke-width 0.5s ease, filter 0.5s ease; }
+.brand-mark.is-tracking .brand-mark__arc { opacity: 0.3; }
+.brand-mark.is-tracking .brand-mark__arc.is-active { opacity: 1; stroke-width: 3.4; filter: drop-shadow(0 0 1.2px var(--arc-color)); }
+.brand-mark__dot { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark__arc { transition: none; }
+}
 .site-brand__edition { display: block; margin-top: 0.2rem; font-size: 0.5rem; color: var(--muted); letter-spacing: 0.35em; }
 .site-header__note { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.19em; text-transform: uppercase; }
 .nav {
@@ -176,7 +211,9 @@ html[data-lang="en"] [data-es] {
   font-variant-numeric: tabular-nums;
   pointer-events: none;
   opacity: 0.85;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
+.section-index.is-hidden { opacity: 0; transform: translateY(0.5rem); }
 .section-index__num {
   font-size: 0.95rem;
   font-weight: 600;

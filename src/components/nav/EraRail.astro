@@ -3,6 +3,7 @@ import { CHAPTERS, RAIL_SOURCES } from '@/content/timeline';
 ---
 
 <nav class="era-rail" aria-label="Timeline sections" data-era-rail>
+  <span class="era-rail__track" data-rail-track aria-hidden="true"><span class="era-rail__fill" data-rail-fill></span></span>
   <ol class="era-rail__list">
     {
       CHAPTERS.map((c) => (

@@ -1,15 +1,38 @@
 ---
+import Icon from '@/components/ui/Icon.astro';
 ---
 
-<article class="live-card live-card--apod" data-apod>
+<article class="live-card live-card--apod is-loading" data-apod aria-busy="true">
   <header>
-    <span class="live-card__kicker">NASA · APOD</span>
+    <span class="live-card__kicker">NASA · APOD <span class="live-card__date" data-apod-date></span></span>
     <h3 data-apod-title>
-      <span data-es>Cargando imagen del día…</span>
-      <span data-en>Loading picture of the day…</span>
+      <span data-es>Cargando la imagen del día…</span>
+      <span data-en>Loading the picture of the day…</span>
     </h3>
   </header>
   <div class="live-card__media" data-apod-media></div>
-  <p class="live-card__body" data-apod-explanation></p>
-  <footer class="live-card__credit" data-apod-credit></footer>
+  <p class="live-card__body" data-apod-explanation>
+    <span class="skeleton-line"></span>
+    <span class="skeleton-line"></span>
+    <span class="skeleton-line skeleton-line--short"></span>
+  </p>
+  <p class="live-card__notice" data-apod-notice hidden></p>
+  <footer class="live-card__credit">
+    <span data-apod-credit></span>
+    <span class="live-card__actions">
+      <button type="button" class="live-card__retry" data-apod-retry hidden>
+        <span data-es>Reintentar</span><span data-en>Try again</span>
+      </button>
+      <a
+        class="live-card__link"
+        data-apod-link
+        href="https://apod.nasa.gov/apod/astropix.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span data-es>Leer completo en NASA</span><span data-en>Read it on NASA</span>
+        <Icon name="external" size={13} />
+      </a>
+    </span>
+  </footer>
 </article>

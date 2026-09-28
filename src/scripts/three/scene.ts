@@ -7,6 +7,7 @@ import { Color } from 'three/src/math/Color.js';
 import { DirectionalLight } from 'three/src/lights/DirectionalLight.js';
 import { FogExp2 } from 'three/src/scenes/FogExp2.js';
 import { Group } from 'three/src/objects/Group.js';
+import { MathUtils } from 'three/src/math/MathUtils.js';
 import { Mesh } from 'three/src/objects/Mesh.js';
 import { MeshBasicMaterial } from 'three/src/materials/MeshBasicMaterial.js';
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js';
@@ -15,6 +16,7 @@ import { Scene } from 'three/src/scenes/Scene.js';
 import { ShaderMaterial } from 'three/src/materials/ShaderMaterial.js';
 import { SphereGeometry } from 'three/src/geometries/SphereGeometry.js';
 import { TorusGeometry } from 'three/src/geometries/TorusGeometry.js';
+import { Vector2 } from 'three/src/math/Vector2.js';
 import { WebGLRenderer } from 'three/src/renderers/WebGLRenderer.js';
 import type { Object3D } from 'three/src/core/Object3D.js';
 import { gsap } from 'gsap';
@@ -24,7 +26,12 @@ export type SceneOptions = Record<string, never>;
 
 export interface SceneAPI {
   setEra(era: Era, duration?: number): void;
+  /** Lleva el blob a una esquina, más pequeño, para no competir con tarjetas o listas. */
+  setYield(active: boolean, duration?: number): void;
 }
+
+// Fracción del ancho donde vive la columna de texto; las estrellas se atenúan ahí.
+const textEdgeFor = (width: number) => (width > 900 ? 0.55 : 1.2);
 
 export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -346,6 +353,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       uDensity: { value: ERA_PRESETS.hot.starDensity },
       uTwinkle: { value: ERA_PRESETS.hot.starTwinkle },
       uBrightness: { value: ERA_PRESETS.hot.starBrightness },
+      uResolution: { value: new Vector2(1, 1) },
+      uTextEdge: { value: textEdgeFor(window.innerWidth) },
     },
     vertexShader: /* glsl */ `
       attribute float aSize;
@@ -357,13 +366,16 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
       void main() {
         vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
         vTwinkle = 0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * 1.6 * uTwinkle + aPhase * 6.28318));
-        gl_PointSize = aSize * uPixelRatio * (180.0 / -mvPos.z) * vTwinkle;
+        // Tope de tamaño: las estrellas cercanas se volvían discos tipo bokeh sobre el texto.
+        gl_PointSize = min(aSize * uPixelRatio * (180.0 / -mvPos.z), 8.0 * uPixelRatio) * vTwinkle;
         gl_Position = projectionMatrix * mvPos;
       }
     `,
     fragmentShader: /* glsl */ `
       uniform float uDensity;
       uniform float uBrightness;
+      uniform vec2 uResolution;
+      uniform float uTextEdge;
       varying float vTwinkle;
       void main() {
         vec2 c = gl_PointCoord - 0.5;
@@ -371,7 +383,8 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
         // Núcleo brillante + halo suave.
         float core = smoothstep(0.5, 0.0, d);
         float halo = smoothstep(0.5, 0.15, d) * 0.4;
-        float a = (core + halo) * vTwinkle * uDensity;
+        float inText = 1.0 - smoothstep(uTextEdge - 0.1, uTextEdge + 0.05, gl_FragCoord.x / uResolution.x);
+        float a = (core + halo) * vTwinkle * uDensity * (1.0 - 0.55 * inText);
         vec3 col = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.95, 0.85), vTwinkle) * uBrightness;
         gl_FragColor = vec4(col, a);
       }
@@ -472,6 +485,12 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     scrollProgress = max > 0 ? window.scrollY / max : 0;
   });
 
+  const syncViewport = () => {
+    renderer.getDrawingBufferSize(pMat.uniforms.uResolution.value);
+    pMat.uniforms.uTextEdge.value = textEdgeFor(window.innerWidth);
+  };
+  syncViewport();
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -479,7 +498,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const pr = Math.min(window.devicePixelRatio, 2);
     pMat.uniforms.uPixelRatio.value = pr;
     dustMat.uniforms.uPixelRatio.value = pr;
+    syncViewport();
   });
+
+  const yieldState = { k: 0 };
 
   const clock = new Clock();
   function tick() {
@@ -503,9 +525,23 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const aspect = window.innerWidth / window.innerHeight;
     const xFactor = Math.min(1, aspect / 1.4);
     const scaleFactor = 0.7 + 0.3 * xFactor;
-    activeObject.position.x = pose.x * xFactor + mouse.x * 0.16;
-    activeObject.position.y = pose.y + mouse.y * 0.1;
-    activeObject.scale.setScalar(pose.scale * scaleFactor);
+    const camZ = 6 + scrollProgress * 4;
+    const halfH = Math.tan(MathUtils.degToRad(camera.fov / 2)) * camZ;
+    const halfW = halfH * aspect;
+    // En vertical el texto ocupa todo el ancho: el blob sube a la esquina superior derecha.
+    const portrait = aspect < 0.85;
+    let baseX = portrait ? halfW * 0.62 : pose.x * xFactor;
+    let baseY = portrait ? halfH * 0.5 + pose.y * 0.2 : pose.y;
+    let baseScale = pose.scale * scaleFactor * (portrait ? 0.72 : 1);
+    const k = yieldState.k;
+    if (k > 0) {
+      baseX = MathUtils.lerp(baseX, halfW * (portrait ? 0.62 : 0.68), k);
+      baseY = MathUtils.lerp(baseY, halfH * (portrait ? 0.6 : 0.56), k);
+      baseScale *= 1 - 0.55 * k;
+    }
+    activeObject.position.x = baseX + mouse.x * 0.16;
+    activeObject.position.y = baseY + mouse.y * 0.1;
+    activeObject.scale.setScalar(baseScale);
 
     // Shockwave sigue al blob y mira a la cámara (billboard) — siempre se ve plano.
     if (shockwave.visible) {
@@ -526,7 +562,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
 
     camera.position.x = mouse.x * 0.08;
     camera.position.y = mouse.y * 0.06;
-    camera.position.z = 6 + scrollProgress * 4;
+    camera.position.z = camZ;
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
@@ -640,5 +676,14 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     }
   };
 
-  return { setEra };
+  const setYield = (active: boolean, duration = 1.1) => {
+    gsap.to(yieldState, {
+      k: active ? 1 : 0,
+      duration: reducedMotion.matches ? 0 : duration,
+      ease: 'power3.inOut',
+      overwrite: true,
+    });
+  };
+
+  return { setEra, setYield };
 }

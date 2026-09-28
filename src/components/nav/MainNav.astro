@@ -1,15 +1,13 @@
 ---
+import BrandMark from '@/components/ui/BrandMark.astro';
+
 const isSources = Astro.url.pathname.startsWith('/work');
 ---
 
 <header class="site-header">
   <a class="site-brand" href="/" aria-label="Cosmos — Inicio / Home">
-    <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <circle cx="20" cy="20" r="11" />
-      <ellipse cx="20" cy="20" rx="19" ry="6" transform="rotate(-35 20 20)" />
-      <circle class="site-brand__star" cx="29" cy="7" r="2" />
-    </svg>
-    <span>Cosmos<span class="site-brand__edition">01 — 07</span></span>
+    <BrandMark />
+    <span>Cosmos<span class="site-brand__edition">7 eras</span></span>
   </a>
   <span class="site-header__note"><span data-es>Un viaje a través del tiempo</span><span data-en>A journey through time</span></span>
   <nav class="nav" aria-label="Principal">

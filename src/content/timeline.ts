@@ -10,6 +10,10 @@ export interface ChapterMeta {
   railLabelEs: string;
   railTickEn: string;
   railTickEs: string;
+  /** Días transcurridos si los 13 800 millones de años fueran un año (0–365). */
+  calendarDay: number;
+  calendarEs: string;
+  calendarEn: string;
 }
 
 export const CHAPTERS: ChapterMeta[] = [
@@ -23,6 +27,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Inflación',
     railTickEn: 'Hot era',
     railTickEs: 'Era caliente',
+    calendarDay: 0,
+    calendarEs: '1 ene · 00:00',
+    calendarEn: 'Jan 1 · 00:00',
   },
   {
     id: 'recombination',
@@ -34,6 +41,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Recombinación',
     railTickEn: 'Cooling',
     railTickEs: 'Enfriamiento',
+    calendarDay: 0.01,
+    calendarEs: '1 ene · 00:14',
+    calendarEn: 'Jan 1 · 00:14',
   },
   {
     id: 'cosmic-dawn',
@@ -45,6 +55,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Amanecer cósmico',
     railTickEn: 'Stellar ignition',
     railTickEs: 'Ignición estelar',
+    calendarDay: 5.29,
+    calendarEs: '6 ene',
+    calendarEn: 'Jan 6',
   },
   {
     id: 'galaxies',
@@ -56,6 +69,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Galaxias',
     railTickEn: 'Galactic era',
     railTickEs: 'Era galáctica',
+    calendarDay: 26.45,
+    calendarEs: '27 ene',
+    calendarEn: 'Jan 27',
   },
   {
     id: 'solar-system',
@@ -67,6 +83,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Sistema Solar',
     railTickEn: 'Planetary disk',
     railTickEs: 'Disco planetario',
+    calendarDay: 243.3,
+    calendarEs: '1 sep',
+    calendarEn: 'Sep 1',
   },
   {
     id: 'life',
@@ -78,6 +97,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Vida',
     railTickEn: 'Biotic era',
     railTickEs: 'Era biótica',
+    calendarDay: 267.1,
+    calendarEs: '25 sep',
+    calendarEn: 'Sep 25',
   },
   {
     id: 'now',
@@ -89,6 +111,9 @@ export const CHAPTERS: ChapterMeta[] = [
     railLabelEs: 'Ahora',
     railTickEn: 'Live sky',
     railTickEs: 'Cielo vivo',
+    calendarDay: 365,
+    calendarEs: '31 dic · 23:59',
+    calendarEn: 'Dec 31 · 23:59',
   },
 ];
 

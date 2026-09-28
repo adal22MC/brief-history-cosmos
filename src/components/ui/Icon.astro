@@ -1,0 +1,36 @@
+---
+// Iconos de interfaz: línea de 1.5, puntas redondas, color heredado (currentColor).
+const PATHS = {
+  'arrow-down': 'M12 4v15M6 13l6 6 6-6',
+  'arrow-up': 'M12 20V5M6 11l6-6 6 6',
+  link: 'M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2',
+  close: 'M6 6l12 12M18 6L6 18',
+  'caret-up': 'M7 14l5-5 5 5',
+  external: 'M8 16L16 8M9.5 8H16v6.5',
+} as const;
+
+export type IconName = keyof typeof PATHS;
+
+interface Props {
+  name: IconName;
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 24, class: className } = Astro.props;
+---
+
+<svg
+  class:list={['icon', className]}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <path d={PATHS[name]} />
+</svg>

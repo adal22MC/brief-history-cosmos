@@ -46,6 +46,8 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const mobileLabel = document.querySelector<HTMLElement>('[data-rail-mobile-label]');
   const sheetBilingual = mobile?.querySelectorAll<HTMLElement>('[data-bilingual-es]');
   const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const track = rail.querySelector<HTMLElement>('[data-rail-track]');
+  const fill = rail.querySelector<HTMLElement>('[data-rail-fill]');
   let activeIndex = 0;
   let sheetOpen = false;
   let sheetHideTimer: number | undefined;
@@ -239,24 +241,62 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
       return;
     }
 
-    if (event.key === 'ArrowDown') {
+    // Las flechas conservan el scroll nativo para poder leer secciones largas; J/K saltan de capítulo.
+    const key = event.key.toLowerCase();
+    if (key === 'j' && activeIndex < sections.length - 1) {
       event.preventDefault();
       scrollToSection(activeIndex + 1);
-    } else if (event.key === 'ArrowUp') {
+    } else if (key === 'k' && activeIndex > 0) {
       event.preventDefault();
       scrollToSection(activeIndex - 1);
-    } else if (event.key === 'Home') {
-      event.preventDefault();
-      scrollToSection(0);
-    } else if (event.key === 'End') {
-      event.preventDefault();
-      scrollToSection(sections.length - 1);
     }
   });
 
   if (!sections.length && sourceLink) {
     sourceLink.classList.toggle('is-active', location.pathname.startsWith('/work'));
     sourceLink.setAttribute('aria-current', location.pathname.startsWith('/work') ? 'page' : 'false');
+  }
+
+  // Línea de progreso: va del primer al último punto de capítulo y se llena con el scroll.
+  const measureTrack = () => {
+    if (!track) return;
+    const dots = railLinks.map((link) => link.querySelector<HTMLElement>('.era-rail__dot')).filter(Boolean) as HTMLElement[];
+    if (sections.length < 2 || dots.length < 2) {
+      track.hidden = true;
+      return;
+    }
+    track.hidden = false;
+    const railTop = rail.getBoundingClientRect().top;
+    const center = (el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      return rect.top + rect.height / 2 - railTop;
+    };
+    const top = center(dots[0]);
+    rail.style.setProperty('--track-top', `${top}px`);
+    rail.style.setProperty('--track-height', `${center(dots[dots.length - 1]) - top}px`);
+  };
+  measureTrack();
+  listen(window, 'resize', measureTrack);
+  if (fill && sections.length > 1) {
+    const tween = gsap.fromTo(
+      fill,
+      { scaleY: 0 },
+      {
+        scaleY: 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: sections[0],
+          start: 'top top',
+          endTrigger: sections[sections.length - 1],
+          end: 'top top',
+          scrub: isReduced ? true : 0.4,
+        },
+      },
+    );
+    onCleanup(() => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+    });
   }
 
   const syncFrame = requestAnimationFrame(syncToViewport);

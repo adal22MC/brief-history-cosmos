@@ -1,0 +1,226 @@
+---
+import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import Icon from '@/components/ui/Icon.astro';
+import { CHAPTERS } from '@/content/timeline';
+import { ACCESSED, CHAPTER_CLAIMS, REFERENCES, type Reference } from '@/content/sources';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
+
+const chapters = CHAPTERS.filter((chapter) => CHAPTER_CLAIMS[chapter.id]?.length);
+---
+
+<div class="source-chapters">
+  {chapters.map((chapter) => (
+    <section
+      class="source-chapter"
+      id={`src-${chapter.id}`}
+      style={`--c: ${ERA_ACCENTS[chapter.era]}`}
+      aria-labelledby={`src-${chapter.id}-title`}
+    >
+      <header class="source-chapter__head">
+        <span class="source-chapter__num">{chapter.railNum}</span>
+        <h2 id={`src-${chapter.id}-title`}>
+          <BilingualSpan es={chapter.sectionLabelEs} en={chapter.sectionLabelEn} />
+        </h2>
+        <span class="source-chapter__tick">
+          <BilingualSpan es={chapter.railTickEs} en={chapter.railTickEn} />
+          · <BilingualSpan es={chapter.calendarEs} en={chapter.calendarEn} />
+        </span>
+        <a class="source-chapter__back" href={`/#${chapter.id}`}>
+          <BilingualSpan es="Ir al capítulo →" en="Go to chapter →" />
+        </a>
+      </header>
+
+      <ol class="source-chapter__claims">
+        {CHAPTER_CLAIMS[chapter.id].map((claim) => (
+          <li class="claim">
+            <span class="claim__value">
+              {claim.valueEn ? <BilingualSpan es={claim.value} en={claim.valueEn} /> : claim.value}
+            </span>
+            <div class="claim__body">
+              <p class="claim__label"><BilingualSpan es={claim.labelEs} en={claim.labelEn} /></p>
+              {claim.noteEs && claim.noteEn && (
+                <p class="claim__note"><BilingualSpan es={claim.noteEs} en={claim.noteEn} /></p>
+              )}
+              <ul class="claim__refs">
+                {claim.refs.map((id) => {
+                  const ref: Reference = REFERENCES[id];
+                  return (
+                    <li>
+                      <span class="claim__author">{ref.author}{ref.year && ` (${ref.year})`}.</span>{' '}
+                      <a href={ref.url} target="_blank" rel="noopener noreferrer">
+                        <cite>{ref.title}</cite>
+                        <Icon name="external" size={12} />
+                      </a>{' '}
+                      <span class="claim__publisher">
+                        {ref.publisher}.
+                        {!ref.year && <BilingualSpan es={` Consultado ${ACCESSED.es}.`} en={` Accessed ${ACCESSED.en}.`} />}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+</div>
+
+<style>
+  .source-chapters {
+    display: grid;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+
+  .source-chapter {
+    display: grid;
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    gap: 2rem;
+    padding: 2rem clamp(1.25rem, 2.5vw, 2rem);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--c);
+    border-radius: 4px;
+    background: rgba(6, 6, 13, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    scroll-margin-top: 6.5rem;
+  }
+
+  .source-chapter__head {
+    display: grid;
+    gap: 0.35rem;
+    align-content: start;
+  }
+
+  .source-chapter__num {
+    color: var(--c);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .source-chapter__head h2 {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.8rem, 2.6vw, 2.3rem);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .source-chapter__tick {
+    color: var(--muted);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .source-chapter__back {
+    margin-top: 0.8rem;
+    color: var(--c);
+    font-size: 0.72rem;
+    text-decoration: none;
+    justify-self: start;
+    padding-block: 0.4rem;
+  }
+
+  .source-chapter__back:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .source-chapter__claims {
+    display: grid;
+    gap: 1.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .claim {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 1.2rem;
+  }
+
+  .claim + .claim {
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .claim__value {
+    color: var(--fg);
+    font-size: 1.35rem;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .claim__body {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .claim__label {
+    color: var(--fg);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .claim__note {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  .claim__refs {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.2rem 0 0;
+    padding: 0 0 0 0.9rem;
+    border-left: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    list-style: none;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .claim__author {
+    color: var(--fg);
+  }
+
+  .claim__refs a {
+    color: var(--c);
+    text-decoration: none;
+  }
+
+  .claim__refs a:hover cite {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .claim__refs cite {
+    font-style: italic;
+  }
+
+  .claim__refs :global(.icon) {
+    display: inline;
+    margin-left: 0.2rem;
+    vertical-align: -1px;
+  }
+
+  @media (max-width: 760px) {
+    .source-chapter {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .claim {
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+    }
+  }
+</style>

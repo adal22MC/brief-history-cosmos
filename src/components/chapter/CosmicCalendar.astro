@@ -1,0 +1,82 @@
+---
+import BilingualSpan from '@/components/ui/BilingualSpan.astro';
+import GlossaryTerm from '@/components/ui/GlossaryTerm.astro';
+import { CHAPTERS } from '@/content/timeline';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
+
+const MONTHS = [
+  ['E', 'J', 31], ['F', 'F', 28], ['M', 'M', 31], ['A', 'A', 30], ['M', 'M', 31], ['J', 'J', 30],
+  ['J', 'J', 31], ['A', 'A', 31], ['S', 'S', 30], ['O', 'O', 31], ['N', 'N', 30], ['D', 'D', 31],
+] as const;
+
+// Fila de la etiqueta sobre la barra: los capítulos 01–03 caen en la primera semana de enero.
+const LABEL_ROWS = [0, 1, 2, 0, 0, 1, 0];
+
+const marks = CHAPTERS.map((chapter, i) => ({
+  ...chapter,
+  pos: `${((chapter.calendarDay / 365) * 100).toFixed(2)}%`,
+  row: LABEL_ROWS[i] ?? 0,
+  color: ERA_ACCENTS[chapter.era],
+}));
+---
+
+<figure class="cosmic-calendar" data-calendar data-index-hide data-scene-yield>
+  <figcaption class="cosmic-calendar__head">
+    <span class="cosmic-calendar__kicker">
+      <span data-es><GlossaryTerm id="cosmicCalendar">Calendario cósmico</GlossaryTerm></span>
+      <span data-en><GlossaryTerm id="cosmicCalendar">Cosmic calendar</GlossaryTerm></span>
+    </span>
+    <span class="cosmic-calendar__title">
+      <BilingualSpan
+        es="Si los 13 800 millones de años cupieran en un año"
+        en="If 13.8 billion years fit into a single year"
+      />
+    </span>
+    <span class="cosmic-calendar__scale">
+      <BilingualSpan
+        es="1 día ≈ 38 millones de años · 1 segundo ≈ 440 años"
+        en="1 day ≈ 38 million years · 1 second ≈ 440 years"
+      />
+    </span>
+  </figcaption>
+
+  <div class="cosmic-calendar__track" aria-hidden="true">
+    <ol class="cosmic-calendar__marks">
+      {marks.map((mark) => (
+        <li
+          class:list={['cosmic-calendar__mark', { 'cosmic-calendar__mark--end': mark.calendarDay >= 365 }]}
+          style={`--pos: ${mark.pos}; --row: ${mark.row}; --c: ${mark.color}`}
+        >
+          <span class="cosmic-calendar__mark-num">{mark.railNum}</span>
+        </li>
+      ))}
+    </ol>
+    <ol class="cosmic-calendar__months">
+      {MONTHS.map(([es, en, days]) => (
+        <li style={`flex-grow: ${days}`}>
+          <span data-es>{es}</span><span data-en>{en}</span>
+        </li>
+      ))}
+    </ol>
+    <span class="cosmic-calendar__fill"></span>
+  </div>
+
+  <ol class="cosmic-calendar__legend">
+    {marks.map((mark) => (
+      <li style={`--c: ${mark.color}`}>
+        <a href={`#${mark.id}`} data-chapter-target={mark.id}>
+          <span class="cosmic-calendar__legend-num">{mark.railNum}</span>
+          <span class="cosmic-calendar__legend-name"><BilingualSpan es={mark.sectionLabelEs} en={mark.sectionLabelEn} /></span>
+          <span class="cosmic-calendar__legend-date"><BilingualSpan es={mark.calendarEs} en={mark.calendarEn} /></span>
+        </a>
+      </li>
+    ))}
+  </ol>
+
+  <p class="cosmic-calendar__coda">
+    <BilingualSpan
+      es="Homo sapiens aparece el 31 de diciembre a las 23:48. Toda la historia humana cabe en los últimos 12 minutos del año."
+      en="Homo sapiens shows up on December 31 at 23:48. All of human history fits in the last 12 minutes of the year."
+    />
+  </p>
+</figure>

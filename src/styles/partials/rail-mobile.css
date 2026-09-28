@@ -7,7 +7,25 @@
   transform: translateY(-50%);
   mix-blend-mode: screen;
 }
+.era-rail__track {
+  position: absolute;
+  top: var(--track-top, 0);
+  right: calc(0.5rem - 0.5px);
+  width: 1px;
+  height: var(--track-height, 0);
+  background: rgba(240, 235, 225, 0.14);
+  pointer-events: none;
+}
+.era-rail__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--era-accent);
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+  transition: background 0.4s ease;
+}
 .era-rail__list {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -68,6 +86,7 @@
 
 .era-rail__dot {
   grid-column: 2;
+  grid-row: 1;
   justify-self: center;
   width: 0.42rem;
   height: 0.42rem;
@@ -84,6 +103,7 @@
 }
 .era-rail__panel {
   grid-column: 1;
+  grid-row: 1;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas:
@@ -154,6 +174,17 @@
 }
 .era-rail__link.is-active .era-rail__panel {
   border-color: color-mix(in srgb, var(--era-accent) 45%, rgba(255, 255, 255, 0.12));
+}
+/* El capítulo activo siempre muestra su nombre, sin caja, pegado al punto. */
+.era-rail__link.is-active:not(:hover, :focus-visible) .era-rail__panel {
+  min-width: 0;
+  opacity: 1;
+  transform: none;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  text-shadow: 0 1px 10px rgba(6, 6, 13, 0.9);
 }
 
 .era-mobile-host {

@@ -1,0 +1,124 @@
+---
+import Icon from '@/components/ui/Icon.astro';
+import { CHAPTERS } from '@/content/timeline';
+import type { Resource } from '@/content/sources';
+import { ERA_ACCENTS } from '@/scripts/three/era-presets';
+
+interface Props {
+  items: Resource[];
+}
+
+const { items } = Astro.props;
+const chapterById = new Map(CHAPTERS.map((chapter) => [chapter.id, chapter]));
+---
+
+<ul class="resources">
+  {items.map((item) => (
+    <li class="resource">
+      <a class="resource__link" href={item.url} target="_blank" rel="noopener noreferrer">
+        <span class="resource__title">{item.title}<Icon name="external" size={13} /></span>
+        <span class="resource__detail"><span data-es>{item.detailEs}</span><span data-en>{item.detailEn}</span></span>
+        <span class="resource__org">{item.org}</span>
+      </a>
+      {item.usedIn && item.usedIn.length > 0 && (
+        <span class="resource__used">
+          {item.usedIn.map((id) => {
+            const chapter = chapterById.get(id);
+            return chapter && (
+              <a href={`/#${chapter.id}`} style={`--c: ${ERA_ACCENTS[chapter.era]}`}>
+                <span data-es>Capítulo {chapter.railNum}</span><span data-en>Chapter {chapter.railNum}</span>
+              </a>
+            );
+          })}
+        </span>
+      )}
+    </li>
+  ))}
+</ul>
+
+<style>
+  .resources {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .resource {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: rgba(6, 6, 13, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: border-color 0.2s;
+  }
+
+  .resource:hover {
+    border-color: rgba(240, 235, 225, 0.35);
+  }
+
+  .resource__link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.4rem 1.4rem 1rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .resource__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--fg);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .resource__title :global(.icon) {
+    color: var(--accent);
+  }
+
+  .resource__detail {
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+
+  .resource__org {
+    margin-top: auto;
+    padding-top: 0.4rem;
+    color: var(--accent);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .resource__used {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0 1.4rem 1.2rem;
+  }
+
+  .resource__used a {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+    border-radius: 999px;
+    color: var(--c);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .resource__used a:hover {
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+  }
+</style>

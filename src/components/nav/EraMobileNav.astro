@@ -1,6 +1,7 @@
 ---
 import { CHAPTERS, CHAPTER_COUNT } from '@/content/timeline';
 import { ERA_ACCENTS } from '@/scripts/three/era-presets';
+import Icon from '@/components/ui/Icon.astro';
 
 const initialChapter = CHAPTERS[0];
 const initialNum = initialChapter?.railNum ?? '01';
@@ -21,15 +22,7 @@ const initialNum = initialChapter?.railNum ?? '01';
       <span class="era-mobile__label" data-rail-mobile-label>{initialChapter?.sectionLabelEs ?? ''}</span>
     </span>
     <span class="era-mobile__caret" aria-hidden="true">
-      <svg width="14" height="14" viewBox="0 0 24 24">
-        <path
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M7 14l5-5 5 5"></path>
-      </svg>
+      <Icon name="caret-up" size={14} />
     </span>
   </button>
 
@@ -56,15 +49,7 @@ const initialNum = initialChapter?.railNum ?? '01';
           data-rail-mobile-close
           aria-label="Close chapter navigation"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 6l12 12M18 6L6 18"></path>
-          </svg>
+          <Icon name="close" size={18} />
         </button>
       </header>
       <ul class="era-sheet__list" role="list">

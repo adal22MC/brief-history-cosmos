@@ -17,7 +17,10 @@ main { position: relative; z-index: 1; }
   background: linear-gradient(90deg, rgba(6, 6, 13, 0.7), rgba(6, 6, 13, 0.2) 48%, transparent 75%);
 }
 .chapter__inner { width: min(620px, 62%); }
-.hero .chapter__inner { width: min(820px, 75%); }
+.hero .chapter__inner { width: min(820px, 75%); margin-block: auto; }
+/* La portada es una columna: el contenido se centra y el colofón queda al pie, en el flujo,
+   para que el contenido nunca lo tape ni lo empuje fuera de la pantalla. */
+.section.hero { flex-direction: column; align-items: flex-start; }
 .chapter__inner--wide, .hero .chapter__inner--wide { width: min(1180px, 100%); }
 .chapter__eyebrow { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
 .chapter__num, .tag {
@@ -44,7 +47,7 @@ main { position: relative; z-index: 1; }
 }
 .hero .chapter__watermark { display: none; }
 .hero h1 {
-  font-size: clamp(3.5rem, 6vw, 6.5rem);
+  font-size: clamp(3.5rem, min(6vw, 10.5svh), 6.5rem);
   font-weight: 500;
   letter-spacing: -0.065em;
   line-height: 1.02;
@@ -117,8 +120,9 @@ main { position: relative; z-index: 1; }
 .chapter__next-label { display: block; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; }
 .chapter__next-title { display: block; margin-top: 0.3rem; font-size: 0.72rem; color: var(--muted); }
 .hero__colophon {
-  position: absolute;
-  inset: auto var(--page-gutter) 2rem;
+  flex: none;
+  width: 100%;
+  margin-top: 2.5rem;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -148,7 +152,9 @@ main { position: relative; z-index: 1; }
   position: relative;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: rgba(6, 6, 13, 0.74);
+  background: rgba(6, 6, 13, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: clamp(1.25rem, 2.5vw, 2rem);
   display: flex;
   flex-direction: column;
@@ -156,25 +162,229 @@ main { position: relative; z-index: 1; }
   transition: border-color 0.25s;
 }
 .live-card:hover { border-color: rgba(240, 235, 225, 0.35); }
+.live-card [hidden] { display: none; }
 .live-card header { display: flex; flex-direction: column; gap: 0.8rem; }
-.live-card__kicker { color: var(--accent); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; }
+.live-card__kicker { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--accent); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; }
+.live-card__date { color: var(--muted); }
+.live-card__pulse { width: 6px; height: 6px; border-radius: 50%; background: #ff6b5b; box-shadow: 0 0 0 0 rgba(255, 107, 91, 0.6); animation: live-pulse 2s infinite; }
+@keyframes live-pulse { 70% { box-shadow: 0 0 0 7px rgba(255, 107, 91, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 107, 91, 0); } }
 .live-card h3 { font-size: clamp(1.1rem, 1.5vw, 1.35rem); font-weight: 500; line-height: 1.4; }
-.live-card__media { width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: rgba(255, 255, 255, 0.025); }
+.live-card__media { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: rgba(255, 255, 255, 0.025); }
 .live-card__media img, .live-card__media iframe { width: 100%; height: 100%; object-fit: cover; border: 0; display: block; }
 .live-card__body { font-size: 0.85rem; line-height: 1.7; color: var(--muted); }
-.live-card__credit { font-size: 0.65rem; color: var(--muted); margin-top: auto; padding: 0; text-align: left; }
+.live-card__notice { font-size: 0.75rem; line-height: 1.6; color: #f5d27a; }
+.live-card__credit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem 1rem; font-size: 0.65rem; color: var(--muted); margin-top: auto; padding: 0; text-align: left; }
+.live-card__actions { display: inline-flex; align-items: center; gap: 1rem; }
+.live-card__link { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--accent); text-decoration: none; letter-spacing: 0.06em; padding-block: 0.6rem; }
+.live-card__link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.live-card__retry {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.live-card__retry:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Esqueleto mientras llega la APOD */
+.skeleton-line { display: block; height: 0.7rem; margin-block: 0.55rem; border-radius: 3px; background: rgba(240, 235, 225, 0.07); }
+.skeleton-line--short { width: 60%; }
+.live-card.is-loading .live-card__media::after,
+.live-card.is-loading .skeleton-line { background-image: linear-gradient(100deg, transparent 30%, rgba(240, 235, 225, 0.08) 50%, transparent 70%); background-size: 200% 100%; animation: skeleton-sweep 1.6s linear infinite; }
+.live-card.is-loading .live-card__media::after { content: ''; position: absolute; inset: 0; }
+.live-card.is-loading .live-card__credit { visibility: hidden; }
+@keyframes skeleton-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.live-card.is-error h3 { color: var(--fg); }
+.live-card.is-error .live-card__media,
+.live-card.is-media-error .live-card__media {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 22%, rgba(228, 188, 139, 0.18) 22.3% 22.8%, transparent 23.1% 34%, rgba(228, 188, 139, 0.08) 34.3% 34.7%, transparent 35%),
+    rgba(255, 255, 255, 0.02);
+}
+.live-card.is-error .live-card__media::before,
+.live-card.is-media-error .live-card__media::before {
+  content: 'APOD';
+  color: var(--muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+}
+
+.iss-context { font-size: 0.78rem; color: var(--muted); min-height: 1.2em; }
 .iss-globe { width: 100%; aspect-ratio: 1; display: block; }
-.iss-data { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--line); }
+.iss-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; margin-top: -0.4rem; font-size: 0.62rem; letter-spacing: 0.08em; color: var(--muted); }
+.iss-legend__item { display: inline-flex; align-items: center; gap: 0.5rem; }
+.iss-legend__item::before { content: ''; width: 1.4rem; height: 0; border-top: 2px solid #ffb45c; }
+.iss-legend__item--next::before { border-top: 2px dashed #7fd7ff; }
+.iss-data { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .iss-data > div { display: flex; flex-direction: column; gap: 0.35rem; }
 .iss-data dt { font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
 .iss-data dd { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-main > footer { padding: 3rem var(--page-gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.7rem; line-height: 1.8; display: flex; justify-content: space-between; gap: 1rem; }
-.footer__author strong { color: var(--fg); font-weight: 500; }
+/* Copiar enlace del capítulo */
+.chapter__share {
+  margin-left: 0.4rem;
+  margin-block: -1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.2rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.chapter__share:hover { color: var(--fg); }
+.chapter__share .icon { flex: none; }
+.chapter__share-done { display: none; color: var(--chapter-accent, var(--accent)); }
+.chapter__share[data-copied] .chapter__share-idle { display: none; }
+.chapter__share[data-copied] .chapter__share-done { display: inline; }
 
+/* Fecha del capítulo en el calendario cósmico */
+.chapter__calendar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.85rem; margin-top: 1.4rem; font-size: 0.72rem; letter-spacing: 0.04em; color: var(--muted); }
+.chapter__calendar strong { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chapter__sources { padding: 0.35rem 0 0.35rem 0.85rem; border-left: 1px solid var(--line); color: var(--muted); text-decoration: underline dotted color-mix(in srgb, var(--chapter-accent, var(--accent)) 70%, transparent); text-underline-offset: 0.25em; }
+.chapter__sources:hover { color: var(--fg); }
+.chapter__calendar-bar { position: relative; flex: none; width: 4.5rem; height: 3px; border-radius: 2px; background: rgba(240, 235, 225, 0.14); }
+.chapter__calendar-bar::before { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--pos); border-radius: inherit; background: color-mix(in srgb, var(--chapter-accent, var(--accent)) 55%, transparent); }
+.chapter__calendar-bar span { position: absolute; top: 50%; left: var(--pos); width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--chapter-accent, var(--accent)); box-shadow: 0 0 8px var(--chapter-accent, var(--accent)); }
+
+/* Glosario en línea */
+.term { position: relative; }
+.term__trigger {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-transform: inherit;
+  cursor: help;
+  text-decoration: underline dotted color-mix(in srgb, var(--chapter-accent, var(--accent)) 85%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+.term__trigger:hover, .term[data-open] .term__trigger { color: var(--fg); text-decoration-style: solid; }
+.term__tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  z-index: 30;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(14, 14, 24, 0.97);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  /* display:none al estar cerrado: oculto con visibility seguía ensanchando la página en móvil. */
+  display: none;
+  pointer-events: none;
+  transform: translateX(var(--tip-shift, 0px));
+}
+.term[data-place="below"] .term__tip { top: calc(100% + 0.55rem); bottom: auto; }
+.term:hover .term__tip,
+.term__trigger:focus-visible + .term__tip,
+.term[data-open] .term__tip { display: block; animation: term-tip-in 0.18s ease-out; }
+@keyframes term-tip-in { from { opacity: 0; translate: 0 4px; } }
+.term__tip strong { display: block; margin-bottom: 0.3rem; color: var(--chapter-accent, var(--accent)); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* Calendario cósmico */
+.cosmic-calendar {
+  margin: 3rem 0 0;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(6, 6, 13, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  gap: 1.8rem;
+}
+.cosmic-calendar__head { display: grid; gap: 0.55rem; }
+.cosmic-calendar__kicker { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.cosmic-calendar__title { font-family: var(--font-editorial); font-size: clamp(1.7rem, 3vw, 2.5rem); font-weight: 500; line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; color: var(--fg); }
+.cosmic-calendar__scale { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cosmic-calendar__track { position: relative; padding-top: 4rem; }
+.cosmic-calendar__months { display: flex; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.cosmic-calendar__months li { min-width: 0; height: 1.9rem; display: grid; place-items: center; border-radius: 2px; background: rgba(240, 235, 225, 0.06); color: var(--muted); font-size: 0.58rem; letter-spacing: 0.1em; }
+.cosmic-calendar__months li:nth-child(even) { background: rgba(240, 235, 225, 0.035); }
+.cosmic-calendar__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #ffb070, #a8c2f0 12%, #c8a0ff 40%, #f5d27a 67%, #88e0d3 80%, #c2a2ff);
+  transform-origin: 0 50%;
+}
+.cosmic-calendar__marks { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.cosmic-calendar__mark { position: absolute; left: var(--pos); top: calc(var(--row) * 1.2rem); bottom: 0; width: 0; }
+.cosmic-calendar__mark::before { content: ''; position: absolute; left: -1px; top: 1.05rem; bottom: -0.35rem; width: 2px; border-radius: 1px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.cosmic-calendar__mark-num { position: absolute; top: 0; left: -1px; padding-left: 0.4rem; border-left: 2px solid var(--c); color: var(--c); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em; line-height: 1; font-variant-numeric: tabular-nums; }
+.cosmic-calendar__mark--end .cosmic-calendar__mark-num { left: auto; right: -1px; padding: 0 0.4rem 0 0; border-left: 0; border-right: 2px solid var(--c); }
+.cosmic-calendar__mark--end::after { content: ''; position: absolute; left: -5px; bottom: 0.6rem; width: 10px; height: 10px; border-radius: 50%; background: var(--c); animation: live-pulse-c 2s infinite; }
+@keyframes live-pulse-c { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+.cosmic-calendar__legend { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
+.cosmic-calendar__legend a { display: grid; gap: 0.2rem; padding-top: 0.7rem; border-top: 2px solid var(--c); color: var(--fg); text-decoration: none; }
+.cosmic-calendar__legend-num { color: var(--c); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+.cosmic-calendar__legend-name { font-size: 0.8rem; font-weight: 600; line-height: 1.3; transition: color 0.2s; }
+.cosmic-calendar__legend-date { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.cosmic-calendar__legend a:hover .cosmic-calendar__legend-name { color: var(--c); }
+.cosmic-calendar__coda { max-width: 62ch; color: var(--muted); font-size: 0.85rem; line-height: 1.7; }
+.cosmic-calendar + .live-grid { margin-top: 1.5rem; }
+
+/* Pie: cierre del recorrido + créditos */
+.site-footer { position: relative; z-index: 1; display: grid; gap: 3.5rem; padding: 5rem var(--page-gutter) 3rem; border-top: 1px solid var(--line); background: linear-gradient(transparent, rgba(6, 6, 13, 0.85) 30%); color: var(--muted); }
+.site-footer a { color: inherit; text-decoration: none; transition: color 0.2s; }
+.site-footer a:hover { color: var(--fg); }
+.site-footer__closing { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 2rem; }
+.site-footer__coda { display: grid; gap: 0.8rem; max-width: 40rem; }
+.site-footer__line { font-family: var(--font-editorial); font-size: clamp(2.2rem, 4.5vw, 3.8rem); font-style: italic; font-weight: 500; line-height: 1; letter-spacing: -0.03em; color: var(--fg); text-wrap: balance; }
+.site-footer__now { font-size: 0.85rem; line-height: 1.7; }
+.site-footer__meta { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.4fr; gap: 2rem; align-items: start; padding-top: 2rem; border-top: 1px solid var(--line); font-size: 0.75rem; line-height: 1.7; }
+.site-footer .site-footer__brand { display: flex; align-items: center; gap: 0.75rem; color: var(--fg); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
+.site-footer__brand svg { width: 30px; height: 30px; flex: none; }
+.site-footer__edition { display: block; margin-top: 0.15rem; font-size: 0.5rem; font-weight: 500; letter-spacing: 0.35em; color: var(--muted); }
+.site-footer__col { display: grid; gap: 0.6rem; }
+.site-footer__label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.site-footer__col ul { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.site-footer__author { justify-self: end; text-align: right; }
+.site-footer__author strong { display: block; color: var(--fg); font-weight: 500; }
+.site-footer__year { display: block; margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+
+@media (min-width: 901px) and (pointer: fine) {
+  /* Deja libre la franja derecha donde vive la barra de capítulos con su etiqueta activa. */
+  .chapter__inner--wide { width: min(1180px, 100% - 7rem); }
+}
 @media (min-width: 901px) {
-  .section.hero { min-height: max(100svh, 860px); padding-block: 6.5rem; }
+  .section.hero { min-height: max(100svh, 640px); padding-block: 6.5rem 2.25rem; }
   .section-index { bottom: 1rem; }
-  .hero__colophon { bottom: 3.6rem; }
 }
 @media (max-width: 900px), (pointer: coarse) {
   .era-rail, .section-index { display: none; }
@@ -187,12 +397,25 @@ main > footer { padding: 3rem var(--page-gutter); border-top: 1px solid var(--li
   .chapter__inner--wide, .hero .chapter__inner--wide { width: 100%; }
   .hero h1 { font-size: clamp(3rem, 9vw, 5.5rem); }
   .chapter::before { background: linear-gradient(90deg, rgba(6, 6, 13, 0.85), rgba(6, 6, 13, 0.38)); }
-  .hero__colophon { position: static; width: 100%; margin-top: 3rem; font-size: 0.5rem; flex-wrap: wrap; }
-  .hero { flex-direction: column; align-items: flex-start; justify-content: center; }
+  .hero__colophon { margin-top: 3rem; font-size: 0.5rem; flex-wrap: wrap; }
   .live-grid { grid-template-columns: 1fr; }
-  main > footer { flex-direction: column; }
+  .site-footer { padding-top: 4rem; gap: 2.5rem; }
+  .site-footer__meta { grid-template-columns: 1fr 1fr; }
+  .site-footer__brand, .site-footer__author { grid-column: 1 / -1; }
+  .site-footer__author { justify-self: start; text-align: left; }
+}
+@media (max-width: 1100px) {
+  .cosmic-calendar__legend { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .cosmic-calendar__legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cosmic-calendar__months li { font-size: 0.5rem; }
+}
+@media (max-width: 900px) {
+  .chapter__share { margin-left: auto; }
 }
 @media (max-width: 480px) {
+  .chapter__share:not([data-copied]) .chapter__share-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .chapter__eyebrow { gap: 0.7rem; margin-bottom: 1.5rem; }
   .chapter__eyebrow .tag { gap: 0.7rem; }
   .chapter__eyebrow .tag::before { width: 1.5rem; }
