@@ -1,7 +1,5 @@
-import { ACESFilmicToneMapping, AdditiveBlending, BackSide } from 'three/src/constants.js';
+import { ACESFilmicToneMapping, AdditiveBlending } from 'three/src/constants.js';
 import { AmbientLight } from 'three/src/lights/AmbientLight.js';
-import { BufferAttribute } from 'three/src/core/BufferAttribute.js';
-import { BufferGeometry } from 'three/src/core/BufferGeometry.js';
 import { Clock } from 'three/src/core/Clock.js';
 import { Color } from 'three/src/math/Color.js';
 import { DirectionalLight } from 'three/src/lights/DirectionalLight.js';
@@ -11,7 +9,6 @@ import { MathUtils } from 'three/src/math/MathUtils.js';
 import { Mesh } from 'three/src/objects/Mesh.js';
 import { MeshBasicMaterial } from 'three/src/materials/MeshBasicMaterial.js';
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js';
-import { Points } from 'three/src/objects/Points.js';
 import { Scene } from 'three/src/scenes/Scene.js';
 import { ShaderMaterial } from 'three/src/materials/ShaderMaterial.js';
 import { SphereGeometry } from 'three/src/geometries/SphereGeometry.js';
@@ -22,6 +19,7 @@ import type { Object3D } from 'three/src/core/Object3D.js';
 import { gsap } from 'gsap';
 import { ERA_PRESETS, type Era } from './era-presets';
 import { createEraParticles } from './era-particles';
+import { createEraSky } from './era-sky';
 
 export type SceneOptions = Record<string, never>;
 
@@ -272,91 +270,9 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   shockwave.visible = false;
   scene.add(shockwave);
 
-  // ───────── Aurora skybox: envuelve la cámara con un campo de color animado.
-  const auroraGeo = new SphereGeometry(60, 32, 32);
-  const auroraMat = new ShaderMaterial({
-    side: BackSide,
-    depthWrite: false,
-    fog: false,
-    uniforms: {
-      uTime: { value: 0 },
-      uScroll: { value: 0 },
-      uTintA: { value: new Color(0x2e0a52) },
-      uTintB: { value: new Color(0x005a6b) },
-      uIntensity: { value: 0.7 },
-      uFlash: { value: 0 },
-      uFlow: { value: 0 },
-    },
-    vertexShader: /* glsl */ `
-      varying vec3 vPos;
-      void main() {
-        vPos = position;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uTime;
-      uniform float uScroll;
-      varying vec3 vPos;
-
-      // Hash + noise 3D ligero para no replicar el del blob.
-      float hash(vec3 p) {
-        p = fract(p * 0.3183099 + 0.1);
-        p *= 17.0;
-        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-      }
-      float noise(vec3 p) {
-        vec3 i = floor(p);
-        vec3 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        return mix(
-          mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-              mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-          mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-              mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
-          f.z
-        );
-      }
-      float fbm(vec3 p) {
-        float v = 0.0; float a = 0.5;
-        for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.1; a *= 0.5; }
-        return v;
-      }
-
-      uniform vec3 uTintA;
-      uniform vec3 uTintB;
-      uniform float uIntensity;
-      uniform float uFlash;
-      uniform float uFlow;
-
-      void main() {
-        vec3 dir = normalize(vPos);
-        float lat = dir.y;
-        // uFlow desplaza el ruido en una dirección preferente (corriente),
-        // dando sensación orgánica de "flujo" en eras como biotic.
-        vec3 flowOffset = vec3(
-          uTime * (0.04 + uFlow * 0.12),
-          uFlow * uTime * 0.08,
-          uTime * 0.02
-        );
-        float bands = fbm(dir * 1.5 + flowOffset);
-        float curtain = smoothstep(0.35, 0.85, bands - lat * 0.4);
-
-        vec3 deep = vec3(0.015, 0.018, 0.045);
-        vec3 hue = mix(uTintA, uTintB, smoothstep(0.0, 1.0, uScroll));
-        vec3 color = mix(deep, hue, curtain * uIntensity);
-
-        color *= smoothstep(-0.9, 0.4, lat + 0.3);
-
-        // Photon decoupling flash: pulso global cálido al volverse el universo transparente.
-        vec3 flashTone = vec3(1.0, 0.88, 0.62);
-        color += flashTone * uFlash * (0.7 + curtain * 0.6);
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `,
-  });
-  const aurora = new Mesh(auroraGeo, auroraMat);
-  scene.add(aurora);
+  // ───────── Cielo por era: aurora, estrellas y la estela entre capítulos.
+  const sky = createEraSky(reducedMotion.matches);
+  scene.add(...sky.objects);
 
   const ambient = new AmbientLight(0xffffff, 0.6);
   const keyLight = new DirectionalLight(0xc2a2ff, 1.2);
@@ -367,83 +283,10 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
 
   const activeObject: Object3D = blob;
 
-  // ───────── Starfield: cada estrella tiene tamaño y fase de parpadeo propios.
-  const particleCount = 1400;
-  const positions = new Float32Array(particleCount * 3);
-  const sizes = new Float32Array(particleCount);
-  const phases = new Float32Array(particleCount);
-  for (let i = 0; i < particleCount; i++) {
-    // Distribución en cáscara esférica para evitar acumulación cerca de la cámara.
-    const r = 18 + Math.random() * 22;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    positions[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta);
-    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    positions[i * 3 + 2] = r * Math.cos(phi);
-    sizes[i] = 0.5 + Math.random() * 2.5;
-    phases[i] = Math.random();
-  }
-  const pGeo = new BufferGeometry();
-  pGeo.setAttribute('position', new BufferAttribute(positions, 3));
-  pGeo.setAttribute('aSize', new BufferAttribute(sizes, 1));
-  pGeo.setAttribute('aPhase', new BufferAttribute(phases, 1));
-  const pMat = new ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    fog: false,
-    uniforms: {
-      uTime: { value: 0 },
-      uPixelRatio: { value: maxPixelRatio },
-      // Inicia en estado "hot" (Big Bang): sin estrellas — el plasma aún no es transparente.
-      uDensity: { value: ERA_PRESETS.hot.starDensity },
-      uTwinkle: { value: ERA_PRESETS.hot.starTwinkle },
-      uBrightness: { value: ERA_PRESETS.hot.starBrightness },
-      uResolution: { value: new Vector2(1, 1) },
-      uTextEdge: { value: textEdgeFor(window.innerWidth) },
-    },
-    vertexShader: /* glsl */ `
-      attribute float aSize;
-      attribute float aPhase;
-      uniform float uTime;
-      uniform float uPixelRatio;
-      uniform float uTwinkle;
-      varying float vTwinkle;
-      void main() {
-        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-        vTwinkle = 0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * 1.6 * uTwinkle + aPhase * 6.28318));
-        // Tope de tamaño: las estrellas cercanas se volvían discos tipo bokeh sobre el texto.
-        gl_PointSize = min(aSize * uPixelRatio * (180.0 / -mvPos.z), 8.0 * uPixelRatio) * vTwinkle;
-        gl_Position = projectionMatrix * mvPos;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uDensity;
-      uniform float uBrightness;
-      uniform vec2 uResolution;
-      uniform float uTextEdge;
-      varying float vTwinkle;
-      void main() {
-        vec2 c = gl_PointCoord - 0.5;
-        float d = length(c);
-        // Núcleo brillante + halo suave.
-        float core = smoothstep(0.5, 0.0, d);
-        float halo = smoothstep(0.5, 0.15, d) * 0.4;
-        float inText = 1.0 - smoothstep(uTextEdge - 0.1, uTextEdge + 0.05, gl_FragCoord.x / uResolution.x);
-        float a = (core + halo) * vTwinkle * uDensity * (1.0 - 0.55 * inText);
-        vec3 col = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.95, 0.85), vTwinkle) * uBrightness;
-        gl_FragColor = vec4(col, a);
-      }
-    `,
-  });
-  const points = new Points(pGeo, pMat);
-  scene.add(points);
-
   // ───────── Motivo por era: partículas que cambian de formación (espiral, disco…).
   const eraParticles = createEraParticles(reducedMotion.matches);
   scene.add(eraParticles.object);
 
-  // Los anillos decorativos se apagan cuando la formación de la era ya dibuja su propio plano.
   const RING_VISIBILITY: Record<Era, number> = {
     hot: 1,
     cooling: 1,
@@ -467,11 +310,12 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     scrollProgress = max > 0 ? window.scrollY / max : 0;
   });
 
+  const resolution = new Vector2(1, 1);
   const syncViewport = () => {
-    renderer.getDrawingBufferSize(pMat.uniforms.uResolution.value);
-    pMat.uniforms.uTextEdge.value = textEdgeFor(window.innerWidth);
-    pMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
-    eraParticles.setViewport(pMat.uniforms.uResolution.value, pMat.uniforms.uTextEdge.value, renderer.getPixelRatio());
+    renderer.getDrawingBufferSize(resolution);
+    const textEdge = textEdgeFor(window.innerWidth);
+    sky.setViewport(resolution, textEdge, renderer.getPixelRatio());
+    eraParticles.setViewport(resolution, textEdge, renderer.getPixelRatio());
   };
   syncViewport();
 
@@ -497,7 +341,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const q = QUALITY[level];
     renderer.setPixelRatio(Math.min(maxPixelRatio, q.pixelRatio));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    pGeo.setDrawRange(0, Math.floor(particleCount * q.particles));
+    sky.setDensity(q.particles);
     eraParticles.setDensity(q.particles);
     syncViewport();
   };
@@ -527,6 +371,9 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
   });
 
   const yieldState = { k: 0 };
+  // Velocidad de scroll (pantallas por segundo) para la estela de las estrellas.
+  let lastScrollY = window.scrollY;
+  const mouseVec = new Vector2();
 
   const clock = new Clock();
   let lastTime = 0;
@@ -537,13 +384,12 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     lastTime = t;
     mouse.x += (mouse.tx - mouse.x) * 0.05;
     mouse.y += (mouse.ty - mouse.y) * 0.05;
+    const scrollY = window.scrollY;
+    const velocity = delta > 0.001 ? (scrollY - lastScrollY) / window.innerHeight / delta : 0;
+    lastScrollY = scrollY;
 
     material.uniforms.uTime.value = t;
     material.uniforms.uScroll.value = scrollProgress;
-
-    auroraMat.uniforms.uTime.value = t;
-    auroraMat.uniforms.uScroll.value = scrollProgress;
-    pMat.uniforms.uTime.value = t;
 
     activeObject.rotation.y = t * 0.08 * pose.rotSpeed + mouse.x * 0.14;
     activeObject.rotation.x = mouse.y * 0.08;
@@ -586,10 +432,6 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     const formationScale = (baseScale / Math.max(eraScale, 0.01)) * (portrait ? 0.55 : 1);
     eraParticles.update(t, delta, activeObject.position, formationScale);
 
-    // Parallax del starfield + giro lento de la aurora.
-    points.rotation.y = t * 0.015 + mouse.x * 0.025;
-    points.rotation.x = scrollProgress * 0.4 + mouse.y * 0.02;
-    aurora.rotation.y = t * 0.01;
     ringGroup.rotation.z = t * 0.08;
     ringGroup.rotation.y = Math.sin(t * 0.18) * 0.12;
 
@@ -597,81 +439,50 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     camera.position.y = mouse.y * 0.06;
     camera.position.z = camZ;
     camera.lookAt(0, 0, 0);
+    sky.update(t, delta, {
+      camera,
+      origin: activeObject.position,
+      mouse: mouseVec.set(mouse.x, mouse.y),
+      scroll: scrollProgress,
+      velocity,
+    });
 
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
 
-  // setEra: tweenea uniforms del blob y de la aurora hacia el preset deseado.
+  const tweenColor = (target: Color, hex: string, duration: number) => {
+    const next = new Color(hex);
+    gsap.to(target, { r: next.r, g: next.g, b: next.b, duration, ease: 'power2.inOut', overwrite: true });
+  };
+  const tweenValue = (target: object, vars: gsap.TweenVars, duration: number) => {
+    gsap.to(target, { ...vars, duration, ease: 'power2.inOut', overwrite: true });
+  };
+
+  // setEra: tweenea el blob, el cielo y la formación hacia el preset deseado.
+  // overwrite: al pasar varios capítulos seguidos, cada tween reemplaza al anterior en vez de apilarse.
   let lastEra: Era | null = null;
   const setEra = (era: Era, duration = 1.4) => {
     if (reducedMotion.matches) duration = 0;
     const p = ERA_PRESETS[era];
     const isTransition = lastEra !== null && lastEra !== era;
     lastEra = era;
-    gsap.to(material.uniforms.uColorA.value, {
-      r: new Color(p.blobA).r,
-      g: new Color(p.blobA).g,
-      b: new Color(p.blobA).b,
-      duration, ease: 'power2.inOut',
-    });
-    gsap.to(material.uniforms.uColorB.value, {
-      r: new Color(p.blobB).r,
-      g: new Color(p.blobB).g,
-      b: new Color(p.blobB).b,
-      duration, ease: 'power2.inOut',
-    });
-    gsap.to(material.uniforms.uTimeScale, { value: p.blobTimeScale, duration, ease: 'power2.inOut' });
-    gsap.to(material.uniforms.uNoiseFreq, { value: p.blobNoiseFreq, duration, ease: 'power2.inOut' });
-    gsap.to(material.uniforms.uIntensity, { value: p.blobIntensity, duration, ease: 'power2.inOut' });
-    gsap.to((ringA.material as MeshBasicMaterial).color, {
-      r: new Color(p.blobA).r,
-      g: new Color(p.blobA).g,
-      b: new Color(p.blobA).b,
-      duration, ease: 'power2.inOut',
-    });
-    gsap.to((ringB.material as MeshBasicMaterial).color, {
-      r: new Color(p.blobB).r,
-      g: new Color(p.blobB).g,
-      b: new Color(p.blobB).b,
-      duration, ease: 'power2.inOut',
-    });
+    tweenColor(material.uniforms.uColorA.value, p.blobA, duration);
+    tweenColor(material.uniforms.uColorB.value, p.blobB, duration);
+    tweenValue(material.uniforms.uTimeScale, { value: p.blobTimeScale }, duration);
+    tweenValue(material.uniforms.uNoiseFreq, { value: p.blobNoiseFreq }, duration);
+    tweenValue(material.uniforms.uIntensity, { value: p.blobIntensity }, duration);
+    tweenValue(material.uniforms.uCmb, { value: era === 'cooling' ? 1 : 0 }, duration);
+    tweenColor((ringA.material as MeshBasicMaterial).color, p.blobA, duration);
+    tweenColor((ringB.material as MeshBasicMaterial).color, p.blobB, duration);
+    // Los anillos decorativos se apagan cuando la formación de la era ya dibuja su propio plano.
+    tweenValue(ringMat, { opacity: 0.34 * RING_VISIBILITY[era] }, duration);
+    tweenValue(ringB.material as MeshBasicMaterial, { opacity: 0.2 * RING_VISIBILITY[era] }, duration);
+    tweenValue(pose, { x: p.blobX, y: p.blobY, scale: p.blobScale, rotSpeed: p.blobRotSpeed }, duration);
 
-    gsap.to(auroraMat.uniforms.uTintA.value, {
-      r: new Color(p.auroraA).r,
-      g: new Color(p.auroraA).g,
-      b: new Color(p.auroraA).b,
-      duration, ease: 'power2.inOut',
-    });
-    gsap.to(auroraMat.uniforms.uTintB.value, {
-      r: new Color(p.auroraB).r,
-      g: new Color(p.auroraB).g,
-      b: new Color(p.auroraB).b,
-      duration, ease: 'power2.inOut',
-    });
-    gsap.to(auroraMat.uniforms.uIntensity, { value: p.auroraIntensity, duration, ease: 'power2.inOut' });
-    // Aurora flow: corriente direccional fuerte en biotic ("química inquieta").
-    const flowTarget = era === 'biotic' ? 1.0 : era === 'galactic' ? 0.35 : 0;
-    gsap.to(auroraMat.uniforms.uFlow, { value: flowTarget, duration, ease: 'power2.inOut' });
-
+    sky.setEra(era, duration, isTransition);
     eraParticles.setEra(era, duration);
-    gsap.to(material.uniforms.uCmb, { value: era === 'cooling' ? 1 : 0, duration, ease: 'power2.inOut' });
-    gsap.to(ringMat, { opacity: 0.34 * RING_VISIBILITY[era], duration, ease: 'power2.inOut' });
-    gsap.to(ringB.material as MeshBasicMaterial, { opacity: 0.2 * RING_VISIBILITY[era], duration, ease: 'power2.inOut' });
-
-    gsap.to(pMat.uniforms.uDensity, { value: p.starDensity, duration, ease: 'power2.inOut' });
-    gsap.to(pMat.uniforms.uTwinkle, { value: p.starTwinkle, duration, ease: 'power2.inOut' });
-    gsap.to(pMat.uniforms.uBrightness, { value: p.starBrightness, duration, ease: 'power2.inOut' });
-
-    gsap.to(pose, {
-      x: p.blobX,
-      y: p.blobY,
-      scale: p.blobScale,
-      rotSpeed: p.blobRotSpeed,
-      duration,
-      ease: 'power2.inOut',
-    });
 
     // Shockwave: anillo aditivo que irradia desde el blob, tinted con el color de la era entrante.
     if (isTransition && !reducedMotion.matches) {
@@ -695,7 +506,7 @@ export function initThreeScene(canvas: HTMLCanvasElement): SceneAPI {
     // Photon decoupling: al entrar a "cooling" disparamos un flash cálido global
     // que afecta tanto al cielo como al blob — narra el momento en que la luz por fin viaja.
     if (era === 'cooling' && isTransition && !reducedMotion.matches) {
-      const flashTargets = [auroraMat.uniforms.uFlash, material.uniforms.uFlash];
+      const flashTargets = [sky.flash, material.uniforms.uFlash];
       flashTargets.forEach((u) => {
         gsap.killTweensOf(u);
         u.value = 0;

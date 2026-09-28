@@ -7,6 +7,25 @@ export type Era =
   | 'biotic'
   | 'now';
 
+/** Firma del cielo de cada era; cada peso va de 0 a 1 y los que faltan valen 0. */
+export type SkyWeight =
+  /** 01: velo de plasma opaco que tapa las estrellas. */
+  | 'veil'
+  /** 02: manchas tenues tipo mapa de Planck. */
+  | 'speckle'
+  /** 03: las estrellas se encienden una a una y las más masivas ionizan una burbuja azul. */
+  | 'ignite'
+  /** 04: banda de la Vía Láctea con su franja de polvo. */
+  | 'band'
+  /** 05: luz zodiacal que sale del blob a lo largo de la eclíptica. */
+  | 'glow'
+  /** 06: cáusticas de agua. */
+  | 'caustics'
+  /** 07: borde de la atmósfera y satélites cruzando. */
+  | 'horizon'
+  /** Corriente direccional del ruido de la aurora. */
+  | 'flow';
+
 interface EraPreset {
   blobA: string;
   blobB: string;
@@ -23,6 +42,7 @@ interface EraPreset {
   starDensity: number;
   starTwinkle: number;
   starBrightness: number;
+  sky: Partial<Record<SkyWeight, number>>;
 }
 
 export const ERA_PRESETS: Record<Era, EraPreset> = {
@@ -42,6 +62,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 0.0,
     starTwinkle: 1.0,
     starBrightness: 0.0,
+    sky: { veil: 1 },
   },
   cooling: {
     blobA: '#ffe2b8',
@@ -59,6 +80,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 0.18,
     starTwinkle: 0.55,
     starBrightness: 0.55,
+    sky: { speckle: 1 },
   },
   stellar: {
     blobA: '#a8c2f0',
@@ -72,10 +94,11 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     blobRotSpeed: 0.7,
     auroraA: '#0a1233',
     auroraB: '#1e4a8e',
-    auroraIntensity: 0.8,
+    auroraIntensity: 0.3,
     starDensity: 1.0,
     starTwinkle: 1.9,
     starBrightness: 1.4,
+    sky: { ignite: 1 },
   },
   galactic: {
     blobA: '#c8a0ff',
@@ -93,6 +116,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 0.95,
     starTwinkle: 1.0,
     starBrightness: 1.0,
+    sky: { band: 1, flow: 0.35 },
   },
   planetary: {
     blobA: '#f5d27a',
@@ -110,6 +134,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 0.7,
     starTwinkle: 0.75,
     starBrightness: 0.9,
+    sky: { glow: 1 },
   },
   biotic: {
     blobA: '#88e0d3',
@@ -127,6 +152,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 0.85,
     starTwinkle: 0.9,
     starBrightness: 0.95,
+    sky: { caustics: 1, flow: 1 },
   },
   now: {
     blobA: '#c2a2ff',
@@ -144,6 +170,7 @@ export const ERA_PRESETS: Record<Era, EraPreset> = {
     starDensity: 1.0,
     starTwinkle: 1.0,
     starBrightness: 1.0,
+    sky: { horizon: 1 },
   },
 };
 

@@ -26,6 +26,9 @@ function getRailSectionLabel(section: HTMLElement | undefined) {
   );
 }
 
+// En la portada cada capítulo es su propia sección; en Fuentes, el bloque de cada capítulo lo señala con data-rail-id.
+const railIdOf = (section: HTMLElement | undefined) => section?.dataset.railId ?? section?.id;
+
 export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const rail = document.querySelector<HTMLElement>('[data-era-rail]');
   const mobile = document.querySelector<HTMLElement>('[data-era-mobile]');
@@ -35,9 +38,15 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
 
   const sections = gsap.utils.toArray<HTMLElement>('[data-rail-section]');
   const railLinks = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-target]:not([data-rail-mobile-item])');
+  const chapterLinks = railLinks.filter((link) => !link.hasAttribute('data-rail-source'));
   const sheetItems = gsap.utils.toArray<HTMLAnchorElement>('[data-rail-mobile-item]');
   const links = [...railLinks, ...sheetItems];
   const sourceLink = document.querySelector<HTMLAnchorElement>('[data-rail-source]');
+  const isSourcePage = location.pathname.startsWith('/work');
+  const chapterSections = sections.filter((section) =>
+    chapterLinks.some((link) => link.dataset.railTarget === railIdOf(section)),
+  );
+  const indexOfTarget = (target: string | undefined) => sections.findIndex((section) => railIdOf(section) === target);
   const mobileTrigger = document.querySelector<HTMLButtonElement>('[data-rail-mobile-trigger]');
   const mobileSheet = document.querySelector<HTMLElement>('[data-rail-mobile-sheet]');
   const mobileBackdrop = document.querySelector<HTMLElement>('[data-rail-mobile-backdrop]');
@@ -60,40 +69,29 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   const setActive = (index: number) => {
     activeIndex = Math.max(0, Math.min(index, Math.max(sections.length - 1, 0)));
     const activeSection = sections[activeIndex];
-    const activeId = activeSection?.id;
+    const activeId = railIdOf(activeSection);
     const activeEra = activeSection?.dataset.era as Era | undefined;
-    const isSourcePage = location.pathname.startsWith('/work');
+    const activeLink = chapterLinks.find((link) => link.dataset.railTarget === activeId);
 
     links.forEach((link) => {
-      const isActive = Boolean(!isSourcePage && activeId && link.dataset.railTarget === activeId);
+      const isActive = Boolean(activeId && link.dataset.railTarget === activeId);
       link.classList.toggle('is-active', isActive);
       link.setAttribute('aria-current', isActive ? 'location' : 'false');
     });
-
-    if (sourceLink) {
-      sourceLink.classList.toggle('is-active', isSourcePage);
-      sourceLink.setAttribute('aria-current', isSourcePage ? 'page' : 'false');
-    }
+    // En Fuentes, el enlace SRC sigue siendo la página actual aunque se esté leyendo el bloque de un capítulo.
+    if (sourceLink && isSourcePage) sourceLink.setAttribute('aria-current', 'page');
 
     if (activeEra) {
       document.documentElement.style.setProperty('--era-accent', ERA_ACCENTS[activeEra]);
     }
     if (mobileStatus) {
-      mobileStatus.textContent = isSourcePage
-        ? '01'
-        : sections.length
-        ? String(activeIndex + 1).padStart(2, '0')
+      mobileStatus.textContent = activeLink
+        ? activeLink.querySelector('.era-rail__num')?.textContent ?? String(activeIndex + 1).padStart(2, '0')
         : 'SRC';
     }
     if (mobileLabel) {
-      mobileLabel.textContent =
-        sections.length && activeSection ? getRailSectionLabel(activeSection as HTMLElement) : '';
+      mobileLabel.textContent = activeSection ? getRailSectionLabel(activeSection) : '';
     }
-    sheetItems.forEach((item, idx) => {
-      const isActive = !isSourcePage && idx === activeIndex;
-      item.classList.toggle('is-active', isActive);
-      item.setAttribute('aria-current', isActive ? 'location' : 'false');
-    });
   };
 
   const syncSheetBilingual = () => {
@@ -122,25 +120,28 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     document.body.classList.toggle('era-sheet-locked', open);
     if (open) {
       syncSheetBilingual();
-      const activeItem = location.pathname.startsWith('/work') ? undefined : sheetItems[activeIndex];
+      const activeItem = sheetItems.find((item) => item.classList.contains('is-active'));
       activeItem?.focus({ preventScroll: true });
     } else {
       mobileTrigger.focus({ preventScroll: true });
     }
   };
 
-  const getNearestSectionIndex = () => {
+  // La sección activa es la última que ya cruzó el centro de la pantalla; al final de la página, la última.
+  const getActiveSectionIndex = () => {
     if (!sections.length) return 0;
-    const viewportAnchor = window.innerHeight * 0.5;
-    return sections.reduce((nearestIndex, section, index) => {
-      const currentDistance = Math.abs(section.getBoundingClientRect().top - viewportAnchor);
-      const nearestDistance = Math.abs(sections[nearestIndex].getBoundingClientRect().top - viewportAnchor);
-      return currentDistance < nearestDistance ? index : nearestIndex;
-    }, 0);
+    const root = document.documentElement;
+    if (window.scrollY + window.innerHeight >= root.scrollHeight - 2) return sections.length - 1;
+    const anchor = window.innerHeight * 0.5;
+    let index = 0;
+    sections.forEach((section, i) => {
+      if (section.getBoundingClientRect().top <= anchor) index = i;
+    });
+    return index;
   };
 
   const syncToViewport = () => {
-    const index = getNearestSectionIndex();
+    const index = getActiveSectionIndex();
     const section = sections[index];
     if (!section) return;
     setActive(index);
@@ -164,7 +165,9 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (lenis && !shouldReduce) {
       const distance = Math.abs(section.getBoundingClientRect().top);
       const duration = gsap.utils.clamp(0.5, 0.85, 0.45 + distance / window.innerHeight * 0.18);
-      lenis.scrollTo(section, { duration });
+      // Lenis ignora scroll-margin; los bloques de Fuentes lo usan para no quedar bajo el menú.
+      const offset = -(parseFloat(getComputedStyle(section).scrollMarginTop) || 0);
+      lenis.scrollTo(section, { duration, offset });
     } else {
       section.scrollIntoView({ behavior: shouldReduce ? 'auto' : 'smooth', block: 'start' });
     }
@@ -182,8 +185,7 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
 
   links.forEach((link) => {
     listen<MouseEvent>(link, 'click', (event) => {
-      const targetId = link.dataset.railTarget;
-      const targetIndex = sections.findIndex((sec) => sec.id === targetId);
+      const targetIndex = indexOfTarget(link.dataset.railTarget);
       if (targetIndex < 0) return;
       event.preventDefault();
       const wasOpen = sheetOpen;
@@ -213,11 +215,18 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   listen(document, 'astro:before-swap', forceCloseSheet);
   onCleanup(forceCloseSheet);
 
-  listen<CustomEvent<{ id?: string }>>(document, 'cosmos:section-change', (event) => {
-    const detail = (event as CustomEvent<{ id?: string }>).detail;
-    const index = sections.findIndex((sec) => sec.id === detail.id);
-    if (index >= 0) setActive(index);
+  // El rail sigue al scroll por su cuenta: en Fuentes los bloques no coinciden con las secciones del índice.
+  let scrollFrame = 0;
+  listen(window, 'scroll', () => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      const index = getActiveSectionIndex();
+      if (index !== activeIndex) setActive(index);
+      updateFill();
+    });
   });
+  onCleanup(() => cancelAnimationFrame(scrollFrame));
 
   listen(document, 'cosmos:language-change', () => {
     syncSheetBilingual();
@@ -234,10 +243,12 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
     if (isEditableTarget(event.target)) return;
     if (sheetOpen) return;
 
+    // Los números llevan al capítulo: su sección en la portada o su bloque en Fuentes.
     const digit = parseInt(event.key, 10);
-    if (Number.isInteger(digit) && digit >= 1 && digit <= sections.length) {
+    const digitIndex = digit >= 1 ? indexOfTarget(chapterLinks[digit - 1]?.dataset.railTarget) : -1;
+    if (digitIndex >= 0) {
       event.preventDefault();
-      scrollToSection(digit - 1);
+      scrollToSection(digitIndex);
       return;
     }
 
@@ -253,15 +264,15 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   });
 
   if (!sections.length && sourceLink) {
-    sourceLink.classList.toggle('is-active', location.pathname.startsWith('/work'));
-    sourceLink.setAttribute('aria-current', location.pathname.startsWith('/work') ? 'page' : 'false');
+    sourceLink.classList.toggle('is-active', isSourcePage);
+    sourceLink.setAttribute('aria-current', isSourcePage ? 'page' : 'false');
   }
 
   // Línea de progreso: va del primer al último punto de capítulo y se llena con el scroll.
   const measureTrack = () => {
     if (!track) return;
-    const dots = railLinks.map((link) => link.querySelector<HTMLElement>('.era-rail__dot')).filter(Boolean) as HTMLElement[];
-    if (sections.length < 2 || dots.length < 2) {
+    const dots = chapterLinks.map((link) => link.querySelector<HTMLElement>('.era-rail__dot')).filter(Boolean) as HTMLElement[];
+    if (chapterSections.length < 2 || dots.length < 2) {
       track.hidden = true;
       return;
     }
@@ -277,27 +288,27 @@ export function initEraRail({ lenis, isReduced, onCleanup }: RailOpts) {
   };
   measureTrack();
   listen(window, 'resize', measureTrack);
-  if (fill && sections.length > 1) {
-    const tween = gsap.fromTo(
-      fill,
-      { scaleY: 0 },
-      {
-        scaleY: 1,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: sections[0],
-          start: 'top top',
-          endTrigger: sections[sections.length - 1],
-          end: 'top top',
-          scrub: isReduced ? true : 0.4,
-        },
-      },
-    );
-    onCleanup(() => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
-    });
-  }
+  // La línea avanza por tramos: llega a cada punto justo cuando su capítulo cruza el centro de la pantalla,
+  // aunque los bloques midan distinto (en Fuentes cada capítulo tiene más o menos referencias).
+  const setFill = fill && !isReduced ? gsap.quickTo(fill, 'scaleY', { duration: 0.4, ease: 'power3' }) : null;
+  const updateFill = () => {
+    if (!fill || chapterSections.length < 2) return;
+    const anchor = window.innerHeight * 0.5;
+    const tops = chapterSections.map((section) => section.getBoundingClientRect().top - anchor);
+    let progress = 0;
+    for (let i = 0; i < tops.length - 1; i++) {
+      if (tops[i] <= 0) progress = i + Math.min(1, -tops[i] / Math.max(tops[i + 1] - tops[i], 1));
+    }
+    const scale = progress / (tops.length - 1);
+    if (setFill) setFill(scale);
+    else gsap.set(fill, { scaleY: scale });
+  };
+  if (fill) gsap.set(fill, { scaleY: 0 });
+  updateFill();
+  listen(window, 'resize', updateFill);
+  onCleanup(() => {
+    if (fill) gsap.killTweensOf(fill);
+  });
 
   const syncFrame = requestAnimationFrame(syncToViewport);
   const syncTimer = window.setTimeout(syncToViewport, 120);

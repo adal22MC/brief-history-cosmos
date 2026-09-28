@@ -75,7 +75,8 @@ export function initChapterMotion() {
 
   gsap.utils.toArray<HTMLElement>('.chapter:not(.hero)').forEach((chapter) => {
     const targets = chapter.querySelectorAll<HTMLElement>(
-      '.chapter__eyebrow, h2, .lede, .chapter__note, .chapter__stats, .chapter__calendar, .chapter__next',
+      // El título del capítulo tiene su propia entrada (title-motion.ts).
+      '.chapter__eyebrow, h2:not([data-title-motion]), .lede, .chapter__note, .chapter__stats, .chapter__calendar, .chapter__next',
     );
     if (!targets.length) return;
     const playCounts = countUp(chapter);

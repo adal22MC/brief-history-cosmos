@@ -6,6 +6,7 @@ import { initProgressBar, initSectionIndex, initEraDriver } from './progress-era
 import { initEraRail, type CleanupFn } from './era-rail';
 import { initLiveData } from './live-data';
 import { initChapterMotion } from './chapter-motion';
+import { initTitleMotion } from './title-motion';
 import { initGlossary } from './glossary';
 import { initChapterLinks } from './chapter-links';
 import { initBrandMark } from './brand-mark';
@@ -71,6 +72,7 @@ export function initAnimations() {
           lenis = null;
         });
         motionCleanup.push(initChapterMotion());
+        motionCleanup.push(initTitleMotion());
       }
 
       // Antes que el índice de secciones, para recibir el primer cosmos:section-change.
